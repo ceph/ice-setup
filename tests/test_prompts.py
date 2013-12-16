@@ -1,5 +1,5 @@
 import pytest
-from setup import strtobool
+from setup import strtobool, prompt
 
 
 def true_responses(upper_casing=False):
@@ -40,3 +40,31 @@ class TestStrToBool(object):
     def test_invalid(self, response):
         with pytest.raises(ValueError):
             strtobool(response)
+
+
+class TestPrompt(object):
+
+    @pytest.mark.parametrize('response', true_responses())
+    def test_trueish(self, response):
+        fake_input = lambda x: response
+        qx = 'what the what?'
+        assert prompt(qx, _raw_input=fake_input) == 1
+
+    @pytest.mark.parametrize('response', false_responses())
+    def test_falseish(self, response):
+        fake_input = lambda x: response
+        qx = 'what the what?'
+        assert prompt(qx, _raw_input=fake_input) == 0
+
+    def test_try_again_true(self):
+        responses = ['g', 'h', 1]
+        fake_input = lambda x: responses.pop(0)
+        qx = 'what the what?'
+        assert prompt(qx, _raw_input=fake_input) == 1
+
+    def test_try_again_false(self):
+        responses = ['g', 'h', 0]
+        fake_input = lambda x: responses.pop(0)
+        qx = 'what the what?'
+        assert prompt(qx, _raw_input=fake_input) == 0
+
