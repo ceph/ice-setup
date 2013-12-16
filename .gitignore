@@ -6,6 +6,7 @@
 .*.swp
 
 *.pyc
+setupc
 *.pyo
 *.egg-info
 /build
