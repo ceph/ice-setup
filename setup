@@ -97,7 +97,12 @@ def color_format(verbose=False):
 def prompt(question):
     prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
     prompt_format = '{prefix} {question}'.format(prefix=prefix, question=question)
-    return raw_input(prompt_format)
+    response = raw_input(prompt_format)
+    try:
+        return strtobool(response)
+    except ValueError:
+        logger.error('That response was invalid, please try again')
+        return prompt(question)
 
 
 def strtobool(val):
@@ -114,7 +119,7 @@ def strtobool(val):
         val = val.lower()
     except AttributeError:
         val = str(val).lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1', ''):
+    if val in ('y', 'yes', 't', 'true', 'on', '1', '', None):
         return 1
     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
         return 0
