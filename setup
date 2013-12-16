@@ -25,8 +25,9 @@
 # Inktank Storage, Inc.  and its affiliates disclaim any liability for any
 # damages caused by use of this software or hardware in dangerous applications.
 
-import sys
 import logging
+import platform
+import sys
 
 
 # =============================================================================
@@ -88,6 +89,95 @@ def color_format(verbose=False):
         color_format = color_message(BASE_COLOR_FORMAT)
     return ColoredFormatter(color_format)
 
+
+# =============================================================================
+# Exceptions
+# =============================================================================
+
+class ICEError(Exception):
+    """Base ICE Setup exception"""
+    pass
+
+
+# =============================================================================
+# System
+# =============================================================================
+
+def platform_information():
+    """
+    detect platform information, return a dictionary with the following keys:
+
+    * distro_name: as in 'Ubuntu' or 'CentOS'
+    * release:     like '5.0' or '13.04'
+    * codename:    as in 'Wheezy' or 'Quantal'
+    """
+    distro, release, codename = platform.linux_distribution()
+
+    # this could be an empty string in Debian
+    if not codename and 'debian' in distro.lower():
+        debian_codenames = {
+            '8': 'jessie',
+            '7': 'wheezy',
+            '6': 'squeeze',
+        }
+        major_version = release.split('.')[0]
+        codename = debian_codenames.get(major_version, '')
+    return dict(
+        distro_name=_normalized_distro_name(distro.rstrip()),
+        release=release.rstrip(),
+        codename=codename.rstrip(),
+    )
+
+
+def _normalized_distro_name(distro):
+    """
+    Normalizes the distribution name so it is easier to operate on well knowns
+    rather than whatever small differences distributions decide to add to them
+    """
+    distro = distro.lower()
+    if distro.startswith(('redhat', 'red hat')):
+        return 'redhat'
+    elif distro.startswith(('scientific', 'scientific linux')):
+        return 'scientific'
+    elif distro.startswith(('suse', 'opensuse')):
+        return 'suse'
+    return distro
+
+
+# =============================================================================
+# File Utilities
+# =============================================================================
+
+def extract_file(file_path):
+    """
+    Decompress/Extract a tar file to a temporary location and return its full
+    path so that it can be handled elsewhere.  If ``file_path`` is not a tar
+    file and it is a directory holding decompressed files return ``file_path``,
+    otherwise raise an error.
+    """
+    pass
+
+
+def overwrite_dir(source, destination):
+    """
+    Copy all files from _source_ to a temporary location (if not in a temporary
+    location already) and then overwrite the contents of its destination so
+    that the contents are as up to date as possible
+    """
+    # TODO: Need to define the destination of respository files, for example:
+    # /opt/ceph-repos
+    pass
+
+
+def default_repo_location():
+    """
+    Calculates the default repository location of the repository files, for
+    example if this script runs alongside the sources it would get the absolute
+    path for the ``sources`` directory relative to this script.
+    """
+    # TODO: Needs to know about the location (and names) of directories
+    # packaged alongside this script
+    pass
 
 # =============================================================================
 # Prompts
