@@ -100,7 +100,7 @@ def prompt(question):
     return raw_input(prompt_format)
 
 
-def strtobool (val):
+def strtobool(val):
     """
     Convert a string representation of truth to true (1) or false (0).
 
@@ -110,13 +110,16 @@ def strtobool (val):
 
     .. note:: lifted from distutils.utils.strtobool
     """
-    val = string.lower(val)
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+    try:
+        val = val.lower()
+    except AttributeError:
+        val = str(val).lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1', ''):
         return 1
     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
         return 0
     else:
-        raise ValueError, "invalid truth value %r" % (val,)
+        raise ValueError("invalid input value: %r" % (val,))
 
 
 # =============================================================================
