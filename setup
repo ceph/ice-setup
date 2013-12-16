@@ -94,15 +94,16 @@ def color_format(verbose=False):
 # =============================================================================
 
 
-def prompt(question):
+def prompt(question, _raw_input=None):
+    input_prompt = _raw_input or raw_input
     prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
     prompt_format = '{prefix} {question}'.format(prefix=prefix, question=question)
-    response = raw_input(prompt_format)
+    response = input_prompt(prompt_format)
     try:
         return strtobool(response)
     except ValueError:
         logger.error('That response was invalid, please try again')
-        return prompt(question)
+        return prompt(question, _raw_input=input_prompt)
 
 
 def strtobool(val):
