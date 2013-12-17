@@ -102,6 +102,79 @@ class ICEError(Exception):
 
 class NonZeroExit(ICEError):
     """subprocess commands that exit with non-zero status"""
+    pass
+
+
+class UnsupportedPlatform(ICEError):
+    pass
+
+
+# =============================================================================
+# Distributions
+# =============================================================================
+
+
+class CentOS(object):
+    pass
+
+
+class Debian(object):
+    pass
+
+
+class Fedora(object):
+    pass
+
+
+class Suse(object):
+    pass
+
+
+# Normalize casing for easier mapping
+centos = CentOS
+debian = Debian
+fedora = Fedora
+suse = Suse
+
+
+def get_distro():
+    """
+    Retrieve the class that matches the distribution of the current host. This
+    function will call ``platform()`` and retrieve the distribution
+    information, then return the appropriate class and slap a few attributes
+    to that class defining the information it found from the host.
+
+    For example, if the current host is an Ubuntu server, the ``Debian`` class
+    would be returned (as it holds 1:1 parity with Ubuntu) and the following
+    would be set::
+
+        module.name = 'ubuntu'
+        module.release = '12.04'
+        module.codename = 'precise'
+
+    """
+    distro_name, release, codename = platform_information()
+
+    if not codename or not _get_distro(distro_name):
+        error_msg = 'platform is not supported: %s %s %s' % (
+            distro_name,
+            release,
+            codename,
+        )
+        raise UnsupportedPlatform(error_msg)
+
+    # TODO: make this part of the distro objects
+    # no need for them to be inferred here
+    module = _get_distro(distro_name)
+    module.name = distro_name
+    module.release = release
+    module.codename = codename
+    module.machine_type = platform.machine()
+
+    # XXX: Do we need to know about the init?
+    #module.init = _choose_init(distro_name, codename)
+
+    return module
 
 
 # =============================================================================
@@ -167,6 +240,7 @@ def run_call(cmd, logger=None, **kw):
 # System
 # =============================================================================
 
+
 def platform_information():
     """
     detect platform information, return a dictionary with the following keys:
@@ -186,11 +260,29 @@ def platform_information():
         }
         major_version = release.split('.')[0]
         codename = debian_codenames.get(major_version, '')
-    return dict(
-        distro_name=_normalized_distro_name(distro.rstrip()),
-        release=release.rstrip(),
-        codename=codename.rstrip(),
+    return (
+        _normalized_distro_name(distro.rstrip()),
+        release.rstrip(),
+        codename.rstrip(),
     )
+
+
+def _get_distro(distro, fallback=None):
+    if not distro:
+        return
+
+    distro = _normalized_distro_name(distro)
+    distributions = {
+        'debian': debian,
+        'ubuntu': debian,
+        'centos': centos,
+        'scientific': centos,
+        'redhat': centos,
+        'fedora': fedora,
+        'suse': suse,
+        }
+
+    return distributions.get(distro) or _get_distro(fallback)
 
 
 def _normalized_distro_name(distro):
