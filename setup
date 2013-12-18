@@ -214,7 +214,8 @@ def get_distro():
 
 class Yum(object):
 
-    def write_repo_file(self, gpg_url, repo_url, file_name=None, **kw):
+    @classmethod
+    def write_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = file_name or 'ice.repo'
@@ -229,7 +230,8 @@ class Yum(object):
 
 class Apt(object):
 
-    def write_sources_file(self, url, codename, file_name=None, **kw):
+    @classmethod
+    def write_sources_file(cls, url, codename, file_name=None, **kw):
         """add ceph deb repo to sources.list"""
         etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
         file_name = file_name or 'ice.list'
