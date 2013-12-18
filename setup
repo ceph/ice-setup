@@ -26,6 +26,7 @@
 # damages caused by use of this software or hardware in dangerous applications.
 
 import logging
+import os
 import platform
 import subprocess
 import sys
@@ -114,25 +115,25 @@ class UnsupportedPlatform(ICEError):
 # =============================================================================
 
 
-ceph_repo_template = """
-[ceph]
-name=Ceph packages for $basearch
+ice_repo_template = """
+[ice]
+name=ice packages for $basearch
 baseurl={repo_url}/$basearch
 enabled=1
 gpgcheck=1
 type=rpm-md
 gpgkey={gpg_url}
 
-[ceph-noarch]
-name=Ceph noarch packages
+[ice-noarch]
+name=ice noarch packages
 baseurl={repo_url}/noarch
 enabled=1
 gpgcheck=1
 type=rpm-md
 gpgkey={gpg_url}
 
-[ceph-source]
-name=Ceph source packages
+[ice-source]
+name=ice source packages
 baseurl={repo_url}/SRPMS
 enabled=0
 gpgcheck=1
@@ -140,7 +141,7 @@ type=rpm-md
 gpgkey={gpg_url}
 """
 
-ceph_list_template = """deb {url} {codename} main\n"""
+ice_list_template = """deb {url} {codename} main\n"""
 
 
 # =============================================================================
@@ -209,6 +210,34 @@ def get_distro():
     #module.init = _choose_init(distro_name, codename)
 
     return module
+
+
+class Yum(object):
+
+    def write_repo_file(self, gpg_url, repo_url, file_name=None, **kw):
+        """set the contents of /etc/yum.repos.d/ice.repo"""
+        etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
+        file_name = file_name or 'ice.repo'
+        repo_file_path = os.path.join(etc_path, file_name)
+        with open(repo_file_path, 'w') as repo_file:
+            contents = ice_repo_template.format(
+                gpg_url=gpg_url,
+                repo_url=repo_url,
+            )
+            repo_file.write(contents)
+
+
+class Apt(object):
+
+    def write_sources_file(self, url, codename, file_name=None, **kw):
+        """add ceph deb repo to sources.list"""
+        etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
+        file_name = file_name or 'ice.list'
+        list_file_path = os.path.join(etc_path, file_name)
+        with open(list_file_path, 'w') as list_file:
+            list_file.write(ice_list_template.format(
+                url=url, codename=codename)
+            )
 
 
 # =============================================================================
