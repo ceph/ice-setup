@@ -144,7 +144,7 @@ type=rpm-md
 gpgkey={gpg_url}
 """
 
-ice_list_template = """deb {url} {codename} main\n"""
+ice_list_template = """deb {repo_url} {codename} main\n"""
 
 
 # =============================================================================
@@ -218,7 +218,7 @@ def get_distro():
 class Yum(object):
 
     @classmethod
-    def write_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
+    def create_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = file_name or 'ice.repo'
@@ -234,14 +234,14 @@ class Yum(object):
 class Apt(object):
 
     @classmethod
-    def write_sources_file(cls, url, codename, file_name=None, **kw):
+    def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
         """add ceph deb repo to sources.list"""
         etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
         file_name = file_name or 'ice.list'
         list_file_path = os.path.join(etc_path, file_name)
         with open(list_file_path, 'w') as list_file:
             list_file.write(ice_list_template.format(
-                url=url, codename=codename)
+                repo_url=repo_url, codename=kw.pop('codename'))
             )
 
 
@@ -402,7 +402,10 @@ def overwrite_dir(source, destination='/opt/ice-repo/'):
     # /opt/ice-repo
 
     # remove destination to ensure we get a fresh copy
-    shutil.rmtree(destination)
+    try:
+        shutil.rmtree(destination)
+    except OSError:
+        os.mkdir(destination)
 
     # now copy the contents
     shutil.copytree(source, destination)
@@ -460,6 +463,27 @@ def strtobool(val):
         return 0
     else:
         raise ValueError("invalid input value: %r" % (val,))
+
+
+# =============================================================================
+# Actions
+# =============================================================================
+
+def configure(tar_file):
+    """
+    Decompress a tar file for the current host so that it can serve as a repo
+    server and we can then install Calamari and ceph-deploy.
+    """
+    distro = get_distro()
+    decompressed_repo = extract_file(tar_file)
+    overwrite_dir(decompressed_repo)
+
+    # TODO: Allow custom destinations
+    distro.pkg_manager.create_repo_file(
+        gpg_url='/opt/ice/repo/release.asc',
+        repo_url='/opt/ice/repo',
+        codename=distro.codename,
+    )
 
 
 # =============================================================================
