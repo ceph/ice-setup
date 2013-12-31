@@ -28,6 +28,7 @@
 import logging
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -377,6 +378,8 @@ def extract_file(file_path):
     path so that it can be handled elsewhere.  If ``file_path`` is not a tar
     file and it is a directory holding decompressed files return ``file_path``,
     otherwise raise an error.
+
+    Removal of the temporary directory files is responsibility of the caller.
     """
     if os.path.isdir(file_path):
         return file_path
@@ -389,15 +392,23 @@ def extract_file(file_path):
         return destination
 
 
-def overwrite_dir(source, destination):
+def overwrite_dir(source, destination='/opt/ice-repo/'):
     """
     Copy all files from _source_ to a temporary location (if not in a temporary
     location already) and then overwrite the contents of its destination so
     that the contents are as up to date as possible
     """
     # TODO: Need to define the destination of respository files, for example:
-    # /opt/ceph-repos
-    pass
+    # /opt/ice-repo
+
+    # remove destination to ensure we get a fresh copy
+    shutil.rmtree(destination)
+
+    # now copy the contents
+    shutil.copytree(source, destination)
+
+    # finally remove the source
+    shutil.rmtree(source)
 
 
 def default_repo_location():
@@ -408,6 +419,8 @@ def default_repo_location():
     """
     # TODO: Needs to know about the location (and names) of directories
     # packaged alongside this script
+
+    # XXX: bad naming here. Maybe `detect_repo_location`
     pass
 
 # =============================================================================
