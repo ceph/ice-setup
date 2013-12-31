@@ -30,6 +30,8 @@ import os
 import platform
 import subprocess
 import sys
+import tarfile
+import tempfile
 
 
 # =============================================================================
@@ -376,7 +378,15 @@ def extract_file(file_path):
     file and it is a directory holding decompressed files return ``file_path``,
     otherwise raise an error.
     """
-    pass
+    if os.path.isdir(file_path):
+        return file_path
+    if tarfile.is_tarfile(file_path):
+        tmp_dir = tempfile.mkdtemp()
+        destination = os.path.join(tmp_dir, 'repo')
+        tar = tarfile.open(file_path, 'r:gz')
+        tar.extractall(destination)
+        tar.close()
+        return destination
 
 
 def overwrite_dir(source, destination):
