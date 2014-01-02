@@ -217,6 +217,8 @@ def get_distro():
 
 class Yum(object):
 
+    logger = None
+
     @classmethod
     def create_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
@@ -230,8 +232,21 @@ class Yum(object):
             )
             repo_file.write(contents)
 
+    @classmethod
+    def install(cls, package):
+        cmd = [
+            'yum',
+            '-y',
+            '-q',
+            'install',
+        ]
+        cmd.append(package)
+        run(cmd, cls.logger)
+
 
 class Apt(object):
+
+    logger = None
 
     @classmethod
     def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
@@ -243,6 +258,20 @@ class Apt(object):
             list_file.write(ice_list_template.format(
                 repo_url=repo_url, codename=kw.pop('codename'))
             )
+
+    @classmethod
+    def install(cls, package):
+        cmd = [
+            'sudo',
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
+            'apt-get',
+            '-q',
+            'install',
+            '--assume-yes',
+        ]
+        cmd.append(package)
+        run(cmd, cls.logger)
 
 
 # =============================================================================
@@ -426,6 +455,7 @@ def default_repo_location():
     # XXX: bad naming here. Maybe `detect_repo_location`
     pass
 
+
 # =============================================================================
 # Prompts
 # =============================================================================
@@ -484,6 +514,13 @@ def configure(tar_file):
         repo_url='/opt/ice/repo',
         codename=distro.codename,
     )
+
+
+def install(package):
+    """
+    Perform a package installation (e.g. Calamari or ceph-deploy) in the
+    current host, abstracted away from the underlying package manager.
+    """
 
 
 # =============================================================================
