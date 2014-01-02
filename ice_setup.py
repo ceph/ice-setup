@@ -34,6 +34,19 @@ import sys
 import tarfile
 import tempfile
 
+help_heather = """
+
+8888888      .d8888b.      8888888888
+  888       d88P  Y88b     888
+  888       888    888     888
+  888       888            8888888
+  888       888            888
+  888       888    888     888
+  888   d8b Y88b  d88P d8b 888        d8b
+8888888 Y8P  "Y8888P"  Y8P 8888888888 Y8P
+
+      Inktank Ceph Enterprise Setup
+"""
 
 # =============================================================================
 # Logging
@@ -204,6 +217,9 @@ def get_distro():
 
     return module
 
+
+# XXX These probably do not need to be full of classmethods but can be
+# instantiated when the distro detection happens
 
 class Yum(object):
 
@@ -507,6 +523,8 @@ def install(package):
     Perform a package installation (e.g. Calamari or ceph-deploy) in the
     current host, abstracted away from the underlying package manager.
     """
+    distro = get_distro()
+    distro.pkg_manager.install(package)
 
 
 # =============================================================================
@@ -515,6 +533,10 @@ def install(package):
 
 
 def main(argv=None):
+    # TODO:
+    # * add the user prompts for first time runs
+    # * implement hybrid behavior via commands and/or prompts
+    #   ice_setup.py install calamari
     argv = argv or sys.argv
     # Console Logger
     terminal_log = logging.StreamHandler()
