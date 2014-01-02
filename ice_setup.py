@@ -160,22 +160,9 @@ class Debian(object):
     pkg_manager = Apt()
 
 
-class Fedora(object):
-    pkg_manager = Yum()
-
-
-class Suse(object):
-
-    # XXX this is obviously **not** Yum, it should
-    # actually be zypper. Do we want to support this?
-    pkg_manager = Yum()
-
-
 # Normalize casing for easier mapping
 centos = CentOS
 debian = Debian
-fedora = Fedora
-suse = Suse
 
 
 def get_distro():
@@ -372,10 +359,7 @@ def _get_distro(distro, fallback=None):
         'debian': debian,
         'ubuntu': debian,
         'centos': centos,
-        'scientific': centos,
         'redhat': centos,
-        'fedora': fedora,
-        'suse': suse,
         }
 
     return distributions.get(distro) or _get_distro(fallback)
@@ -385,6 +369,9 @@ def _normalized_distro_name(distro):
     """
     Normalizes the distribution name so it is easier to operate on well knowns
     rather than whatever small differences distributions decide to add to them
+
+    Even though we do not support Suse or Scientific, because we are just
+    normalizing we don't mind leaving them here.
     """
     distro = distro.lower()
     if distro.startswith(('redhat', 'red hat')):
