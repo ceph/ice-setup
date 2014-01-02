@@ -153,19 +153,22 @@ ice_list_template = """deb {repo_url} {codename} main\n"""
 
 
 class CentOS(object):
-    pass
+    pkg_manager = Yum()
 
 
 class Debian(object):
-    pass
+    pkg_manager = Apt()
 
 
 class Fedora(object):
-    pass
+    pkg_manager = Yum()
 
 
 class Suse(object):
-    pass
+
+    # XXX this is obviously **not** Yum, it should
+    # actually be zypper. Do we want to support this?
+    pkg_manager = Yum()
 
 
 # Normalize casing for easier mapping
@@ -217,8 +220,6 @@ def get_distro():
 
 class Yum(object):
 
-    logger = None
-
     @classmethod
     def create_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
@@ -241,12 +242,10 @@ class Yum(object):
             'install',
         ]
         cmd.append(package)
-        run(cmd, cls.logger)
+        run(cmd)
 
 
 class Apt(object):
-
-    logger = None
 
     @classmethod
     def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
@@ -271,7 +270,7 @@ class Apt(object):
             '--assume-yes',
         ]
         cmd.append(package)
-        run(cmd, cls.logger)
+        run(cmd)
 
 
 # =============================================================================
@@ -279,7 +278,7 @@ class Apt(object):
 # =============================================================================
 
 
-def run(cmd, logger, **kw):
+def run(cmd, **kw):
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
 
     process = subprocess.Popen(
@@ -316,7 +315,7 @@ def run(cmd, logger, **kw):
             logger.warning(error_msg)
 
 
-def run_call(cmd, logger=None, **kw):
+def run_call(cmd, **kw):
     """
     a callable that will execute a subprocess without raising an exception if
     the exit status is non-zero.
