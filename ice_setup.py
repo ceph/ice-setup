@@ -34,6 +34,8 @@ import sys
 import tarfile
 import tempfile
 
+__version__ = '0.0.1'
+
 help_heather = """
 
 8888888      .d8888b.      8888888888
@@ -45,7 +47,6 @@ help_heather = """
   888   d8b Y88b  d88P d8b 888        d8b
 8888888 Y8P  "Y8888P"  Y8P 8888888888 Y8P
 
-      Inktank Ceph Enterprise Setup
 """
 
 # =============================================================================
@@ -108,6 +109,18 @@ def color_format(verbose=False):
     return ColoredFormatter(color_format)
 
 
+def log_header():
+    """
+    Simple helper to get the header and the version logged at
+    debug level to the console
+    """
+    for line in help_heather.split('\n'):
+        logger.debug(line)
+    logger.debug('      Inktank Ceph Enterprise Setup')
+    logger.debug('      Version: %s', __version__)
+    logger.debug('')
+
+
 # =============================================================================
 # Exceptions
 # =============================================================================
@@ -163,19 +176,6 @@ ice_list_template = """deb {repo_url} {codename} main\n"""
 # =============================================================================
 # Distributions
 # =============================================================================
-
-
-class CentOS(object):
-    pkg_manager = Yum()
-
-
-class Debian(object):
-    pkg_manager = Apt()
-
-
-# Normalize casing for easier mapping
-centos = CentOS
-debian = Debian
 
 
 def get_distro():
@@ -274,6 +274,19 @@ class Apt(object):
         ]
         cmd.append(package)
         run(cmd)
+
+
+class CentOS(object):
+    pkg_manager = Yum()
+
+
+class Debian(object):
+    pkg_manager = Apt()
+
+
+# Normalize casing for easier mapping
+centos = CentOS
+debian = Debian
 
 
 # =============================================================================
@@ -527,6 +540,20 @@ def install(package):
     distro.pkg_manager.install(package)
 
 
+def default():
+    """
+    This action is the default entry point for a generic ICE setup. It goes
+    through all the common questions and prompts for a user and initiates the
+    configuration and setup. It does not offer granular support for given
+    actions, e.g. "just install Calamari".
+    """
+    log_header()
+    logger.debug('This interactive script will help you setup Calamari, Ceph, and ceph-deploy')
+    logger.debug('If specific actions are required (e.g. just install Calamari) call `--help`')
+
+
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -538,11 +565,16 @@ def main(argv=None):
     # * implement hybrid behavior via commands and/or prompts
     #   ice_setup.py install calamari
     argv = argv or sys.argv
+    if 'ice_setup.py' in argv:
+        argv.pop(0)
+
     # Console Logger
     terminal_log = logging.StreamHandler()
     terminal_log.setFormatter(color_format(verbose='-v' in argv))
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
+    if not argv:
+        default()
 
 
 if __name__ == '__main__':
