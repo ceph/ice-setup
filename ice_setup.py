@@ -33,6 +33,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from textwrap import dedent
 
 __version__ = '0.0.1'
 
@@ -683,6 +684,15 @@ def strtobool(val):
 # Actions
 # =============================================================================
 
+
+class Configure(object):
+    pass
+
+
+class Install(object):
+    pass
+
+
 def configure(tar_file):
     """
     Decompress a tar file for the current host so that it can serve as a repo
@@ -726,7 +736,6 @@ def install_ceph_deploy():
     logger.debug('installing ceph-deploy')
 
 
-
 def default():
     """
     This action is the default entry point for a generic ICE setup. It goes
@@ -740,7 +749,6 @@ def default():
         '3. Install ceph-deploy on the ICE Node (current host)',
         '4. Open the Calamari web interface',
     ]
-    log_header()
     logger.debug('This interactive script will help you setup Calamari, package repo, and ceph-deploy')
     logger.debug('with the following steps:')
     for step in configure_steps:
@@ -748,14 +756,35 @@ def default():
     logger.debug('If specific actions are required (e.g. just install Calamari) cancel, and call `--help`')
 
     if prompt('Do you want to continue?'):
-       logger.debug('Configure ICE Node')
-
-
+        logger.debug('Configure ICE Node')
 
 
 # =============================================================================
 # Main
 # =============================================================================
+
+command_map = {
+    'install': Install,
+    'configure': Configure,
+}
+
+
+def ice_help():
+    version = '  Version: %s' % __version__
+    commands = """
+
+    Subcommands:
+
+      install           Installation of Calamari or ceph-deploy
+      configure         Configuration of the ICE node
+      open              Open the Calamari web interface
+    """
+    return '%s\n%s\n%s\n%s' % (
+        help_heather,
+        '  Inktank Ceph Enterprise Setup',
+        version,
+        dedent(commands),
+    )
 
 
 def main(argv=None):
@@ -763,17 +792,23 @@ def main(argv=None):
     # * add the user prompts for first time runs
     # * implement hybrid behavior via commands and/or prompts
     #   ice_setup.py install calamari
+    options = [['-v', '--verbose'],]
     argv = argv or sys.argv
-    if 'ice_setup.py' in argv:
-        argv.pop(0)
+    parser = Transport(argv, mapper=command_map, options=options)
+    parser.catch_version = __version__
+    parser.catch_help = ice_help()
+    parser.parse_args()
 
     # Console Logger
     terminal_log = logging.StreamHandler()
-    terminal_log.setFormatter(color_format(verbose='-v' in argv))
+    terminal_log.setFormatter(
+        color_format(
+            verbose=parser.has(('-v', '--verbose'))
+        )
+    )
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
-    if not argv:
-        default()
+    default()
 
 
 if __name__ == '__main__':
