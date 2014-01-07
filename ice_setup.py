@@ -122,6 +122,173 @@ def log_header():
 
 
 # =============================================================================
+# argument parser
+# =============================================================================
+
+# NOTE: lifted from http://pypi.python.org/pypi/tambo
+# because we can't rely on argparse since it is not available on Python2.6
+# and we support that version but we don't have a way to install dependencies
+
+class BaseCommandline(dict):
+
+    help          = ('-h', '--h', '--help', 'help')
+    version       = ('--version', 'version')
+    catch_help    = ''
+    catch_version = ''
+
+    def catches_help(self, force=True):
+        if self.catch_help:
+            if self.check_help or force:
+                if [i for i in self.arguments if i in self.help]:
+                    self.print_help()
+            return False
+
+    def print_help(self):
+        self.writer.write(self.catch_help+'\n')
+        self.exit()
+
+    def print_version(self):
+        self.writer.write(self.catch_version+'\n')
+        self.exit()
+
+    def catches_version(self, force=True):
+        if self.catch_version:
+            if self.check_version or force:
+                if [i for i in self.arguments if i in self.version]:
+                    self.print_version()
+            return False
+
+
+class Parse(BaseCommandline):
+
+    def __init__(self, arguments, mapper=None, options=None,
+                 check_help=True, check_version=True, writer=None):
+        self.arguments     = arguments[1:]
+        self.mapper        = mapper or {}
+        self.options       = options or []
+        self.check_help    = check_help
+        self.check_version = check_version
+        self._arg_count    = {}
+        self._count_arg    = {}
+        self.writer        = writer or sys.stdout
+        self.exit          = sys.exit
+        self.unkown_commands = []
+
+    def _build(self):
+        extra_args = [i for i in self.arguments]
+        for opt in self.options:
+            if isinstance(opt, (tuple, list)):
+                value = self._single_value_from_list(opt)
+                if value:
+                    for v in opt:
+                        self._remove_item(v, extra_args)
+                        self._remove_item(value, extra_args)
+                        self[v] = value
+                continue
+            value = self._get_value(opt)
+            if value:
+                self._remove_item(value, extra_args)
+                self[opt] = self._get_value(opt)
+            self._remove_item(opt, extra_args)
+        self._remove_cli_helpers(extra_args)
+        self.unkown_commands = extra_args
+
+    def _remove_cli_helpers(self, _list):
+        if self.catch_help:
+            for arg in self.help:
+                self._remove_item(arg, _list)
+        if self.catch_version:
+            for arg in self.version:
+                self._remove_item(arg, _list)
+
+    def _remove_item(self, item, _list):
+        for index, i in enumerate(_list):
+            if item == i:
+                _list.pop(index)
+        return _list
+
+    def _single_value_from_list(self, _list):
+        for value in _list:
+            v = self._get_value(value)
+            if v:
+                return v
+
+    def parse_args(self):
+        # Help and Version:
+        self.catches_help(force=False)
+        self.catches_version(force=False)
+
+        for count, argument in enumerate(self.arguments):
+            self._arg_count[argument] = count
+            self._count_arg[count]    = argument
+
+        # construct the dictionary
+        self._build()
+
+    def _get_value(self, opt):
+        count = self._arg_count.get(opt)
+        if count == None:
+            return None
+        value = self._count_arg.get(count+1)
+
+        return value
+
+    def has(self, opt):
+        if isinstance(opt, (tuple, list)):
+            for i in opt:
+                if i in self._arg_count.keys():
+                    return True
+            return False
+        if opt in self._arg_count.keys():
+            return True
+        return False
+
+
+class Transport(Parse):
+    """
+    This class inherits from the ``Parse`` object that provides the engine
+    to parse arguments from the command line, and it extends the functionality
+    to be able to dispatch on mapped objects to subcommands.
+
+    :param arguments: Should be the *exact* list of arguments coming from ``sys.argv``
+    :keyword mapper: A dictionary of mapped subcommands to classes
+    """
+
+    def dispatch(self):
+        mapper_keys = self.mapper.keys()
+        for arg in self.arguments:
+            if arg in mapper_keys:
+                instance = self.mapper.get(arg)(self.arguments)
+                return instance.parse_args()
+        self.parse_args()
+        if self.unkown_commands:
+            self.writer.write("Unknown command(s): %s\n" % ' '.join(self.unkown_commands))
+
+
+    def subhelp(self):
+        """
+        This method will look at every value of every key in the mapper
+        and will output any ``class.help`` possible to return it as a
+        string that will be sent to stdout.
+        """
+        help_text = self._get_all_help_text()
+
+        if help_text:
+            return "Available subcommands:\n\n%s\n" % ''.join(help_text)
+        return ''
+
+    def _get_all_help_text(self):
+        help_text_lines = []
+        for key, value in self.mapper.items():
+            try:
+                help_text = value.help
+            except AttributeError:
+                continue
+            help_text_lines.append("%-24s %s\n" % (key, help_text))
+        return help_text_lines
+
+
+# =============================================================================
 # Exceptions
 # =============================================================================
 
