@@ -479,11 +479,13 @@ def default_repo_location():
 def prompt(question, _raw_input=None):
     input_prompt = _raw_input or raw_input
     prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
-    prompt_format = '{prefix} {question}'.format(prefix=prefix, question=question)
+    prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
     response = input_prompt(prompt_format)
     try:
         return strtobool(response)
     except ValueError:
+        logger.error('Valid true responses are: y, Y, 1, Enter')
+        logger.error('Valid false responses are: n, N, 0')
         logger.error('That response was invalid, please try again')
         return prompt(question, _raw_input=input_prompt)
 
@@ -540,6 +542,24 @@ def install(package):
     distro.pkg_manager.install(package)
 
 
+def configure_ice():
+    """
+    Configures the ICE node as a repository Host
+    """
+    logger.debug('configuring the ICE node as a repository host')
+
+
+def install_calamari():
+    """ Installs the Calamari web application """
+    logger.debug('installing Calamari')
+
+
+def install_ceph_deploy():
+    """ Installs ceph-deploy """
+    logger.debug('installing ceph-deploy')
+
+
+
 def default():
     """
     This action is the default entry point for a generic ICE setup. It goes
@@ -547,9 +567,21 @@ def default():
     configuration and setup. It does not offer granular support for given
     actions, e.g. "just install Calamari".
     """
+    configure_steps = [
+        '1. Configure the ICE Node (current host) as a repository Host',
+        '2. Install Calamari web application on the ICE Node (current host)',
+        '3. Install ceph-deploy on the ICE Node (current host)',
+        '4. Open the Calamari web interface',
+    ]
     log_header()
-    logger.debug('This interactive script will help you setup Calamari, Ceph, and ceph-deploy')
-    logger.debug('If specific actions are required (e.g. just install Calamari) call `--help`')
+    logger.debug('This interactive script will help you setup Calamari, package repo, and ceph-deploy')
+    logger.debug('with the following steps:')
+    for step in configure_steps:
+        logger.debug(step)
+    logger.debug('If specific actions are required (e.g. just install Calamari) cancel, and call `--help`')
+
+    if prompt('Do you want to continue?'):
+       logger.debug('Configure ICE Node')
 
 
 
