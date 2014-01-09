@@ -33,6 +33,8 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib2
+import urlparse
 from textwrap import dedent
 
 __version__ = '0.0.1'
@@ -584,6 +586,46 @@ def _normalized_distro_name(distro):
 # File Utilities
 # =============================================================================
 
+
+def is_url(url_wannabe):
+    """
+    Make sure that a given argument is an actual, valid URL and that we can
+    open it
+    """
+    if not url_wannabe:
+        return False
+
+    if os.path.exists(url_wannabe):
+        return False
+    try:
+        url_fd = urllib2.urlopen(url_wannabe)
+        url_fd.close()
+        return True
+    except (ValueError, AttributeError):
+        return False
+
+
+def download_file(url, filename=None, destination_dir='/opt/ice/tmp'):
+    """
+    Given a URL, download the contents to a pre-defined destination directory
+    If the filename to save already exists it will get removed before starting
+    the actual download.
+    """
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    url_fd = urllib2.urlopen(urllib2.Request(url))
+    filename_from_url = os.path.basename(urlparse.urlsplit(url_fd.url)[2])
+    filename = filename or filename_from_url
+    destination_path = os.path.join(destination_dir, filename)
+    if os.path.isfile(destination_path):
+        os.remove(destination_path)
+    try:
+        with open(destination_path, 'wb') as f:
+            shutil.copyfileobj(url_fd, f)
+    finally:
+        url_fd.close()
+
+
 def extract_file(file_path):
     """
     Decompress/Extract a tar file to a temporary location and return its full
@@ -686,7 +728,29 @@ def strtobool(val):
 
 
 class Configure(object):
-    pass
+
+    _help = dedent("""
+    Configures the ICE node as a repository Host. Defaults to fetch a tar.gz
+    from ceph.com that will have all the packages needed to create a
+    repository.
+
+    Optional arguments:
+
+      [URL|tar.gz]    A ceph.com URL or a tar.gz file to set the repository
+    """)
+
+    def __init__(self, argv):
+        self.argv = argv
+
+    def parse_args(self):
+        parser = Transport(self.argv, options=['--socket-location'])
+        parser.catch_help = self._help
+        parser.parse_args()
+
+        url_or_file = parser.arguments[0] if parser.arguments else None
+        if is_url(url_or_file):
+            download_file(url_or_file)
+        raise SystemExit(configure_ice())
 
 
 class Install(object):
@@ -721,7 +785,6 @@ def install(package):
 
 def configure_ice():
     """
-    Configures the ICE node as a repository Host
     """
     logger.debug('configuring the ICE node as a repository host')
 
@@ -792,11 +855,10 @@ def main(argv=None):
     # * add the user prompts for first time runs
     # * implement hybrid behavior via commands and/or prompts
     #   ice_setup.py install calamari
-    options = [['-v', '--verbose'],]
+    # * check if executing user is super user (or root), fail otherwise
+    options = [['-v', '--verbose']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
-    parser.catch_version = __version__
-    parser.catch_help = ice_help()
     parser.parse_args()
 
     # Console Logger
@@ -808,6 +870,16 @@ def main(argv=None):
     )
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
+
+    # parse first with no help set defaults later
+    parser.catch_version = __version__
+    parser.catch_help = ice_help()
+    parser.dispatch()
+
+    # if dispatch did not catch anything now parse help
+    parser.catches_help()
+    parser.catches_version()
+
     default()
 
 
