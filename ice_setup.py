@@ -443,6 +443,11 @@ class Yum(object):
         cmd.append(package)
         run(cmd)
 
+    @classmethod
+    def update(cls):
+        # stub
+        pass
+
 
 class Apt(object):
 
@@ -481,6 +486,15 @@ class Apt(object):
             '--assume-yes',
         ]
         cmd.append(package)
+        run(cmd)
+
+    @classmethod
+    def update(cls):
+        cmd = [
+            'apt-get',
+            '-q',
+            'update',
+        ]
         run(cmd)
 
 
@@ -800,6 +814,8 @@ class Configure(object):
         distro.pkg_manager.import_repo(
             gpg_path,
         )
+
+        distro.pkg_manager.update()
 
         raise SystemExit(configure_ice())
 
