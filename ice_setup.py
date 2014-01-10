@@ -309,6 +309,20 @@ class UnsupportedPlatform(ICEError):
     pass
 
 
+class FileNotFound(ICEError):
+    """
+    Provide meaningful information when a given file is not found in the
+    filesystem
+    """
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+        Exception.__init__(self, self.__str__())
+
+    def __str__(self):
+        return 'could not find %s' % self.filepath
+
+
 # =============================================================================
 # Templates
 # =============================================================================
@@ -646,7 +660,7 @@ def extract_file(file_path):
         return destination
 
 
-def overwrite_dir(source, destination='/opt/ice-repo/'):
+def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     """
     Copy all files from _source_ to a temporary location (if not in a temporary
     location already) and then overwrite the contents of its destination so
@@ -668,17 +682,17 @@ def overwrite_dir(source, destination='/opt/ice-repo/'):
     shutil.rmtree(source)
 
 
-def default_repo_location():
+def get_repo_path():
     """
-    Calculates the default repository location of the repository files, for
+    Calculates the repository location of the repository files, for
     example if this script runs alongside the sources it would get the absolute
     path for the ``sources`` directory relative to this script.
     """
-    # TODO: Needs to know about the location (and names) of directories
-    # packaged alongside this script
-
-    # XXX: bad naming here. Maybe `detect_repo_location`
-    pass
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+    repo_path = os.path.join(current_dir, 'ceph-repo')
+    if not os.path.exists(repo_path):
+        raise FileNotFound(repo_path)
+    return repo_path
 
 
 # =============================================================================
