@@ -666,9 +666,6 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     location already) and then overwrite the contents of its destination so
     that the contents are as up to date as possible
     """
-    # TODO: Need to define the destination of respository files, for example:
-    # /opt/ice-repo
-
     # remove destination to ensure we get a fresh copy
     try:
         shutil.rmtree(destination)
@@ -750,20 +747,32 @@ class Configure(object):
 
     Optional arguments:
 
-      [URL|tar.gz]    A ceph.com URL or a tar.gz file to set the repository
+      [tar.gz]    A tar.gz file to set the repository
     """)
 
     def __init__(self, argv):
         self.argv = argv
 
     def parse_args(self):
-        parser = Transport(self.argv, options=['--socket-location'])
+        parser = Transport(self.argv)
         parser.catch_help = self._help
         parser.parse_args()
 
-        url_or_file = parser.arguments[0] if parser.arguments else None
-        if is_url(url_or_file):
-            download_file(url_or_file)
+        repo_path = parser.arguments[0] if parser.arguments else None
+        if not repo_path:  # fallback to our location
+            repo_path = get_repo_path()
+
+        # XXX need to make sure this is correct
+        gpg_path = os.path.join(repo_path, 'release.asc')
+        gpg_url_path = 'file://%s' % gpg_path
+
+        distro = get_distro()
+        distro.pkg_manager.create_repo_file(
+            gpg_url_path,
+            repo_path,
+        )
+
+
         raise SystemExit(configure_ice())
 
 
