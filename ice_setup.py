@@ -421,6 +421,18 @@ class Yum(object):
             repo_file.write(contents)
 
     @classmethod
+    def import_repo(cls, gpg_path):
+        """
+        import the gpg key so that the repo is fully validated
+        """
+        cmd = [
+            'rpm',
+            '--import',
+            gpg_path,
+        ]
+        run(cmd)
+
+    @classmethod
     def install(cls, package):
         cmd = [
             'yum',
@@ -444,6 +456,18 @@ class Apt(object):
             list_file.write(ice_list_template.format(
                 repo_url=repo_url, codename=kw.pop('codename'))
             )
+
+    @classmethod
+    def import_repo(cls, gpg_path):
+        """
+        import the gpg key so that the repo is fully validated
+        """
+        cmd = [
+            'apt-key',
+            'add',
+            gpg_path,
+        ]
+        run(cmd)
 
     @classmethod
     def install(cls, package):
@@ -765,13 +789,17 @@ class Configure(object):
         # XXX need to make sure this is correct
         gpg_path = os.path.join(repo_path, 'release.asc')
         gpg_url_path = 'file://%s' % gpg_path
+        repo_url_path = 'file://%s' % repo_path
 
         distro = get_distro()
         distro.pkg_manager.create_repo_file(
             gpg_url_path,
-            repo_path,
+            repo_url_path,
         )
 
+        distro.pkg_manager.import_repo(
+            gpg_path,
+        )
 
         raise SystemExit(configure_ice())
 
