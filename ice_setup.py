@@ -517,6 +517,7 @@ debian = Debian
 
 
 def run(cmd, **kw):
+    logger.info('Running command: %s' % ' '.join(cmd))
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
 
     process = subprocess.Popen(
@@ -561,7 +562,7 @@ def run_call(cmd, **kw):
     The ``logger`` argument is in the signature only for consistency in the
     API, it does nothing by default.
     """
-
+    logger.info('Running command: %s' % ' '.join(cmd))
     process = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw
     )
@@ -821,6 +822,9 @@ class Configure(object):
         gpg_url_path = 'file://%s' % gpg_path
         repo_url_path = 'file://%s' % destination_repo_path(repo_path)
 
+        # overwrite the repo with the new packages
+        overwrite_dir(repo_path)
+
         distro = get_distro()
         distro.pkg_manager.create_repo_file(
             gpg_url_path,
@@ -830,9 +834,6 @@ class Configure(object):
         distro.pkg_manager.import_repo(
             gpg_path,
         )
-
-        # overwrite the repo with the new packages
-        overwrite_dir(repo_path)
 
         # call update on the package manager
         distro.pkg_manager.update()
