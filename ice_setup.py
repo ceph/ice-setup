@@ -704,6 +704,9 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     location already) and then overwrite the contents of its destination so
     that the contents are as up to date as possible
     """
+    if not os.path.exists(os.path.dirname(destination)):
+        os.makedirs(destination, 0755)
+
     # remove destination to ensure we get a fresh copy
     try:
         shutil.rmtree(destination)
@@ -729,6 +732,16 @@ def get_repo_path():
         raise FileNotFound(repo_path)
     return repo_path
 
+
+def destination_repo_path(path, sep='ceph-repo', prefix='/opt/ICE/ceph-repo'):
+    """
+    Creates the final destination absolute path for the ceph repo files and the
+    gpg key
+    """
+    end_part = path.split(sep)[-1]
+    if end_part.startswith('/'):  # remove initial slash
+        end_part = end_part[1:]
+    return os.path.join(prefix, end_part)
 
 # =============================================================================
 # Prompts
@@ -795,15 +808,18 @@ class Configure(object):
         parser = Transport(self.argv)
         parser.catch_help = self._help
         parser.parse_args()
+        repo_dest_prefix = '/opt/ICE'
 
         repo_path = parser.arguments[0] if parser.arguments else None
         if not repo_path:  # fallback to our location
             repo_path = get_repo_path()
 
         # XXX need to make sure this is correct
-        gpg_path = os.path.join(repo_path, 'release.asc')
+        gpg_path = destination_repo_path(
+            os.path.join(repo_path, 'release.asc')
+        )
         gpg_url_path = 'file://%s' % gpg_path
-        repo_url_path = 'file://%s' % repo_path
+        repo_url_path = 'file://%s' % destination_repo_path(repo_path)
 
         distro = get_distro()
         distro.pkg_manager.create_repo_file(
@@ -815,8 +831,13 @@ class Configure(object):
             gpg_path,
         )
 
+        # overwrite the repo with the new packages
+        overwrite_dir(repo_path)
+
+        # call update on the package manager
         distro.pkg_manager.update()
 
+        # TODO: Move this logic to configure_ice
         raise SystemExit(configure_ice())
 
 
@@ -947,6 +968,8 @@ def main(argv=None):
     parser.catches_help()
     parser.catches_version()
 
+    # XXX check for no arguments so we can use default, otherwise we
+    # would need to exit() on all the commands from above
     default()
 
 
