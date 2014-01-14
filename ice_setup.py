@@ -809,58 +809,48 @@ class Configure(object):
         parser = Transport(self.argv)
         parser.catch_help = self._help
         parser.parse_args()
-        repo_dest_prefix = '/opt/ICE'
 
         repo_path = parser.arguments[0] if parser.arguments else None
-        if not repo_path:  # fallback to our location
-            repo_path = get_repo_path()
-
-        # XXX need to make sure this is correct
-        gpg_path = destination_repo_path(
-            os.path.join(repo_path, 'release.asc')
-        )
-        gpg_url_path = 'file://%s' % gpg_path
-        repo_url_path = 'file://%s' % destination_repo_path(repo_path)
-
-        # overwrite the repo with the new packages
-        overwrite_dir(repo_path)
-
-        distro = get_distro()
-        distro.pkg_manager.create_repo_file(
-            repo_url_path,
-            gpg_url_path,
-        )
-
-        distro.pkg_manager.import_repo(
-            gpg_path,
-        )
-
-        # call update on the package manager
-        distro.pkg_manager.update()
-
-        # TODO: Move this logic to configure_ice
-        raise SystemExit(configure_ice())
+        configure(repo_path=repo_path)
 
 
 class Install(object):
     pass
 
 
-def configure(tar_file):
+def configure(repo_path=None):
     """
-    Decompress a tar file for the current host so that it can serve as a repo
+    Configure the current host so that it can serve as a repo
     server and we can then install Calamari and ceph-deploy.
     """
-    distro = get_distro()
-    decompressed_repo = extract_file(tar_file)
-    overwrite_dir(decompressed_repo)
+    repo_dest_prefix = '/opt/ICE'
 
-    # TODO: Allow custom destinations
-    distro.pkg_manager.create_repo_file(
-        repo_url='/opt/ICE/ceph-repo',
-        gpg_url='/opt/ICE/ceph-repo/release.asc',
-        codename=distro.codename,
+    if not repo_path:  # fallback to our location
+        repo_path = get_repo_path()
+
+    # XXX need to make sure this is correct
+    gpg_path = destination_repo_path(
+        os.path.join(repo_path, 'release.asc')
     )
+    gpg_url_path = 'file://%s' % gpg_path
+    repo_url_path = 'file://%s' % destination_repo_path(repo_path)
+
+    # overwrite the repo with the new packages
+    overwrite_dir(repo_path)
+
+    distro = get_distro()
+    distro.pkg_manager.create_repo_file(
+        repo_url_path,
+        gpg_url_path,
+    )
+
+    distro.pkg_manager.import_repo(
+        gpg_path,
+    )
+
+    # call update on the package manager
+    distro.pkg_manager.update()
+    logger.info('this host is now configured as a repository for ceph-deploy, Calamari, and ceph')
 
 
 def install(package):
@@ -971,7 +961,8 @@ def main(argv=None):
 
     # XXX check for no arguments so we can use default, otherwise we
     # would need to exit() on all the commands from above
-    default()
+    if not parser.arguments:
+        default()
 
 
 if __name__ == '__main__':
