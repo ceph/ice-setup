@@ -408,7 +408,7 @@ def get_distro():
 class Yum(object):
 
     @classmethod
-    def create_repo_file(cls, gpg_url, repo_url, file_name=None, **kw):
+    def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = file_name or 'ice.repo'
