@@ -827,8 +827,8 @@ class Configure(object):
 
         distro = get_distro()
         distro.pkg_manager.create_repo_file(
-            gpg_url_path,
             repo_url_path,
+            gpg_url_path,
         )
 
         distro.pkg_manager.import_repo(
@@ -857,8 +857,8 @@ def configure(tar_file):
 
     # TODO: Allow custom destinations
     distro.pkg_manager.create_repo_file(
-        gpg_url='/opt/ice/repo/release.asc',
-        repo_url='/opt/ice/repo',
+        repo_url='/opt/ICE/ceph-repo',
+        gpg_url='/opt/ICE/ceph-repo/release.asc',
         codename=distro.codename,
     )
 
