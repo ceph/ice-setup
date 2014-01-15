@@ -984,6 +984,16 @@ def ice_help():
     )
 
 
+def sudo_check():
+    """
+    Make sure that the executing user is either 'root' or
+    is making use of `sudo`.
+    """
+    if os.getuid() != 0:
+        msg = 'This script needs to be executed with sudo (or by root)'
+        raise ICEError(msg)
+
+
 def main(argv=None):
     # TODO:
     # * add the user prompts for first time runs
@@ -1005,6 +1015,7 @@ def main(argv=None):
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
 
+    sudo_check()
     # parse first with no help set defaults later
     parser.catch_version = __version__
     parser.catch_help = ice_help()
