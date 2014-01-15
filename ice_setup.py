@@ -721,14 +721,15 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     shutil.rmtree(source)
 
 
-def get_repo_path():
+def get_repo_path(repo_dir_name=None):
     """
     Calculates the repository location of the repository files, for
     example if this script runs alongside the sources it would get the absolute
     path for the ``sources`` directory relative to this script.
     """
+    repo_dir_name = repo_dir_name or 'ceph-repo'
     current_dir = os.path.abspath(os.path.dirname(__file__))
-    repo_path = os.path.join(current_dir, 'ceph-repo')
+    repo_path = os.path.join(current_dir, repo_dir_name)
     if not os.path.exists(repo_path):
         raise FileNotFound(repo_path)
     return repo_path
@@ -749,7 +750,7 @@ def destination_repo_path(path, sep='ceph-repo', prefix='/opt/ICE/ceph-repo'):
 # =============================================================================
 
 
-def prompt(question, _raw_input=None):
+def prompt_bool(question, _raw_input=None):
     input_prompt = _raw_input or raw_input
     prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
     prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
@@ -760,7 +761,23 @@ def prompt(question, _raw_input=None):
         logger.error('Valid true responses are: y, Y, 1, Enter')
         logger.error('Valid false responses are: n, N, 0')
         logger.error('That response was invalid, please try again')
-        return prompt(question, _raw_input=input_prompt)
+        return prompt_bool(question, _raw_input=input_prompt)
+
+
+def prompt(question, default=None, _raw_input=None):
+    """
+    A more basic prompt which just needs some kind of user input, with the
+    ability to pass in a default and will sanitize responses (e.g. striping
+    whitespace).
+    """
+    input_prompt = _raw_input or raw_input
+    prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
+    prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
+    response = input_prompt(prompt_format)
+    if not response:  # e.g. user hit Enter
+        return default
+    else:
+        return str(response).strip()
 
 
 def strtobool(val):
@@ -818,15 +835,53 @@ class Install(object):
     pass
 
 
-def configure(repo_path=None):
+def configure_remotes(repo_path=None):
     """
-    Configure the current host so that it can serve as a repo
-    server and we can then install Calamari and ceph-deploy.
+    Configure the current host so that Calamari can serve as a repo server for
+    remote hosts.
+    """
+    repo_dest_prefix = '/opt/calamari/webapp/content'
+
+    # XXX Prompt the user for the FQDN for the Calamari Server
+
+
+    if not repo_path:  # fallback to our location
+        repo_path = get_repo_path()
+
+    # XXX need to make sure this is correct
+    gpg_path = destination_repo_path(
+        os.path.join(repo_path, 'release.asc')
+    )
+    gpg_url_path = 'file://%s' % gpg_path
+    repo_url_path = 'file://%s' % destination_repo_path(repo_path)
+
+    # overwrite the repo with the new packages
+    overwrite_dir(repo_path)
+
+    distro = get_distro()
+    distro.pkg_manager.create_repo_file(
+        repo_url_path,
+        gpg_url_path,
+    )
+
+    distro.pkg_manager.import_repo(
+        gpg_path,
+    )
+
+    # call update on the package manager
+    distro.pkg_manager.update()
+    logger.info('this host is now configured as a repository for ceph-deploy, Calamari, and ceph')
+
+
+def configure_local(repo_path=None):
+    """
+    Configure the current host so that it can serve as a *local* repo server
+    and we can then install Calamari and ceph-deploy.
     """
     repo_dest_prefix = '/opt/ICE'
 
     if not repo_path:  # fallback to our location
-        repo_path = get_repo_path()
+        repo_path = get_repo_path(repo_dir_name='local-repo')
 
     # XXX need to make sure this is correct
     gpg_path = destination_repo_path(
@@ -897,7 +952,7 @@ def default():
         logger.debug(step)
     logger.debug('If specific actions are required (e.g. just install Calamari) cancel, and call `--help`')
 
-    if prompt('Do you want to continue?'):
+    if prompt_bool('Do you want to continue?'):
         logger.debug('Configure ICE Node')
 
 
