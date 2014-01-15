@@ -1,5 +1,5 @@
 import pytest
-from ice_setup import strtobool, prompt
+from ice_setup import strtobool, prompt, prompt_bool
 
 
 def true_responses(upper_casing=False):
@@ -42,29 +42,40 @@ class TestStrToBool(object):
             strtobool(response)
 
 
-class TestPrompt(object):
+class TestPromptBool(object):
 
     @pytest.mark.parametrize('response', true_responses())
     def test_trueish(self, response):
         fake_input = lambda x: response
         qx = 'what the what?'
-        assert prompt(qx, _raw_input=fake_input) == 1
+        assert prompt_bool(qx, _raw_input=fake_input) == 1
 
     @pytest.mark.parametrize('response', false_responses())
     def test_falseish(self, response):
         fake_input = lambda x: response
         qx = 'what the what?'
-        assert prompt(qx, _raw_input=fake_input) == 0
+        assert prompt_bool(qx, _raw_input=fake_input) == 0
 
     def test_try_again_true(self):
         responses = ['g', 'h', 1]
         fake_input = lambda x: responses.pop(0)
         qx = 'what the what?'
-        assert prompt(qx, _raw_input=fake_input) == 1
+        assert prompt_bool(qx, _raw_input=fake_input) == 1
 
     def test_try_again_false(self):
         responses = ['g', 'h', 0]
         fake_input = lambda x: responses.pop(0)
         qx = 'what the what?'
-        assert prompt(qx, _raw_input=fake_input) == 0
+        assert prompt_bool(qx, _raw_input=fake_input) == 0
 
+
+class TestPrompt(object):
+
+    def test_use_default(self):
+        fake_input = lambda x: None
+        assert prompt('?', default=1, _raw_input=fake_input) == 1
+
+    def test_strip_response(self):
+        fake_input = lambda x: ' le whitespace    '
+        response = prompt('?', default=1, _raw_input=fake_input)
+        assert response == 'le whitespace'
