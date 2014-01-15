@@ -827,8 +827,10 @@ class Configure(object):
         parser.catch_help = self._help
         parser.parse_args()
 
+        sudo_check()
+
         repo_path = parser.arguments[0] if parser.arguments else None
-        configure(repo_path=repo_path)
+        configure_local(repo_path=repo_path)
 
 
 class Install(object):
@@ -1015,7 +1017,6 @@ def main(argv=None):
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
 
-    sudo_check()
     # parse first with no help set defaults later
     parser.catch_version = __version__
     parser.catch_help = ice_help()
@@ -1028,6 +1029,7 @@ def main(argv=None):
     # XXX check for no arguments so we can use default, otherwise we
     # would need to exit() on all the commands from above
     if not parser.arguments:
+        sudo_check()
         default()
 
 
