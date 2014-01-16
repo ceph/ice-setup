@@ -1092,7 +1092,6 @@ def main(argv=None):
     # * add the user prompts for first time runs
     # * implement hybrid behavior via commands and/or prompts
     #   ice_setup.py install calamari
-    # * check if executing user is super user (or root), fail otherwise
     options = [['-v', '--verbose']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
