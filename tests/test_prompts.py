@@ -79,3 +79,14 @@ class TestPrompt(object):
         fake_input = lambda x: ' le whitespace    '
         response = prompt('?', default=1, _raw_input=fake_input)
         assert response == 'le whitespace'
+
+    def test_lowercase_disabled(self):
+        fake_input = lambda x: 'HttPs '
+        response = prompt('?', _raw_input=fake_input)
+        assert response == 'HttPs'
+
+    def test_lowercase_enabled(self):
+        fake_input = lambda x: 'HttPs '
+        response = prompt('?', lowercase=True, _raw_input=fake_input)
+        assert response == 'https'
+
