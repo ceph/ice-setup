@@ -29,6 +29,7 @@ import logging
 import os
 import platform
 import shutil
+import socket
 import subprocess
 import sys
 import tarfile
@@ -692,6 +693,18 @@ def platform_information():
     )
 
 
+def get_fqdn(_socket=None):
+    """
+    Return what might be a valid FQDN and avoiding possible
+    localhost names
+    """
+    sock = _socket or socket
+    fqdn = sock.getfqdn()
+    if fqdn.endswith('.local') or fqdn.startswith('localhost'):
+        return None
+    return fqdn
+
+
 def _get_distro(distro, fallback=None):
     if not distro:
         return
@@ -935,7 +948,7 @@ def configure_remotes(repo_path=None):
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
     # XXX Prompt the user for the FQDN for the Calamari Server
-
+    fallback_fqdn = get_fqdn()
 
     if not repo_path:  # fallback to our location
         repo_path = get_repo_path()
