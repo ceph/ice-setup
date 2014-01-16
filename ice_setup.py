@@ -867,7 +867,7 @@ def prompt_bool(question, _raw_input=None):
         return prompt_bool(question, _raw_input=input_prompt)
 
 
-def prompt(question, default=None, _raw_input=None):
+def prompt(question, default=None, lowercase=False, _raw_input=None):
     """
     A more basic prompt which just needs some kind of user input, with the
     ability to pass in a default and will sanitize responses (e.g. striping
@@ -880,7 +880,10 @@ def prompt(question, default=None, _raw_input=None):
     if not response:  # e.g. user hit Enter
         return default
     else:
-        return str(response).strip()
+        response = str(response).strip()
+        if lowercase:
+            return response.lower()
+        return response
 
 
 def strtobool(val):
@@ -949,6 +952,13 @@ def configure_remotes(repo_path=None):
 
     # XXX Prompt the user for the FQDN for the Calamari Server
     fallback_fqdn = get_fqdn()
+    logger.info('this host will be used to host packages and act as a repository for other nodes')
+    fqdn = prompt('provide the FQDN for this host:', default=fallback_fqdn)
+    protocol = prompt(
+        'what protocol would this host use (http or https)?',
+        default='http',
+        lowercase=True,
+    )
 
     if not repo_path:  # fallback to our location
         repo_path = get_repo_path()
@@ -957,25 +967,20 @@ def configure_remotes(repo_path=None):
     gpg_path = destination_repo_path(
         os.path.join(repo_path, 'release.asc')
     )
-    gpg_url_path = 'file://%s' % gpg_path
-    repo_url_path = 'file://%s' % destination_repo_path(repo_path)
+    gpg_url = '%s://%s/static/ceph-repo/release.asc' % (protocol, fqdn)
+    repo_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
 
     # overwrite the repo with the new packages
     overwrite_dir(repo_path)
 
-    distro = get_distro()
-    distro.pkg_manager.create_repo_file(
-        repo_url_path,
-        gpg_url_path,
+    logger.info('this host is now configured as a repository remote nodes')
+    logger.info('you can run ceph-deploy to install using this host')
+    logger.info('with the following command:')
+    cd_cmd = 'ceph-deploy install --repo-url %s --gpg-url %s {nodes}' % (
+        repo_url,
+        gpg_url,
     )
-
-    distro.pkg_manager.import_repo(
-        gpg_path,
-    )
-
-    # call update on the package manager
-    distro.pkg_manager.update()
-    logger.info('this host is now configured as a repository for ceph-deploy, Calamari, and ceph')
+    logger.info(cd_cmd)
 
 
 def configure_local(repo_path=None):
@@ -1055,10 +1060,12 @@ def default():
     logger.debug('with the following steps:')
     for step in configure_steps:
         logger.debug(step)
-    logger.debug('If specific actions are required (e.g. just install Calamari) cancel, and call `--help`')
+    logger.info('If specific actions are required (e.g. just install Calamari)')
+    logger.info('cancel this script with Ctrl-C, and see the help menu for details')
 
-    if prompt_bool('Do you want to continue?'):
-        logger.debug('Configure ICE Node')
+    if not prompt_bool('Do you want to continue?'):
+        raise SystemExit('quitting interactive mode')
+    logger.info('press Enter to accept a default value, if one is given in brackets')
 
 
 # =============================================================================
