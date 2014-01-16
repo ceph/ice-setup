@@ -867,6 +867,11 @@ def prompt_bool(question, _raw_input=None):
         return prompt_bool(question, _raw_input=input_prompt)
 
 
+def prompt_continue():
+    if not prompt_bool('do you want to continue?'):
+        raise SystemExit('exiting ice setup script')
+
+
 def prompt(question, default=None, lowercase=False, _raw_input=None):
     """
     A more basic prompt which just needs some kind of user input, with the
@@ -875,7 +880,14 @@ def prompt(question, default=None, lowercase=False, _raw_input=None):
     """
     input_prompt = _raw_input or raw_input
     prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
-    prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
+    if default:
+        prompt_format = '{prefix}{question} [{default}] '.format(
+            prefix=prefix,
+            question=question,
+            default=default
+        )
+    else:
+        prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
     response = input_prompt(prompt_format)
     if not response:  # e.g. user hit Enter
         return default
@@ -1050,22 +1062,37 @@ def default():
     configuration and setup. It does not offer granular support for given
     actions, e.g. "just install Calamari".
     """
+    interactive_help()
     configure_steps = [
         '1. Configure the ICE Node (current host) as a repository Host',
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
         '4. Open the Calamari web interface',
     ]
-    logger.debug('This interactive script will help you setup Calamari, package repo, and ceph-deploy')
+
+    logger.debug('this script will setup Calamari, package repo, and ceph-deploy')
     logger.debug('with the following steps:')
     for step in configure_steps:
         logger.debug(step)
-    logger.info('If specific actions are required (e.g. just install Calamari)')
-    logger.info('cancel this script with Ctrl-C, and see the help menu for details')
 
-    if not prompt_bool('Do you want to continue?'):
-        raise SystemExit('quitting interactive mode')
-    logger.info('press Enter to accept a default value, if one is given in brackets')
+
+
+
+def interactive_help(mode='interactive mode'):
+    """
+    Display a re-usable set of instructions before entering a given action,
+    like setting up the repository for remote nodes, that will provide the same
+    information when the interactive mode is running.
+    """
+    logger.info('*'*80)
+    logger.info(mode)
+    logger.info('*'*80)
+    logger.info('follow the prompts to complete the %s', mode)
+    logger.info('if specific actions are required (e.g. just install Calamari)')
+    logger.info('cancel this script with Ctrl-C, and see the help menu for details')
+    logger.info('default values are presented in brackets')
+    logger.info('press Enter to accept a default value, if one is provided')
+    prompt_continue()
 
 
 # =============================================================================
