@@ -121,10 +121,10 @@ def log_header():
     debug level to the console
     """
     for line in help_heather.split('\n'):
-        logger.debug(line)
-    logger.debug('      Inktank Ceph Enterprise Setup')
-    logger.debug('      Version: %s', __version__)
-    logger.debug('')
+        logger.info(line)
+    logger.info('      Inktank Ceph Enterprise Setup')
+    logger.info('      Version: %s', __version__)
+    logger.info('')
 
 
 # =============================================================================
@@ -1070,10 +1070,10 @@ def default():
         '4. Open the Calamari web interface',
     ]
 
-    logger.debug('this script will setup Calamari, package repo, and ceph-deploy')
-    logger.debug('with the following steps:')
+    logger.info('this script will setup Calamari, package repo, and ceph-deploy')
+    logger.info('with the following steps:')
     for step in configure_steps:
-        logger.debug(step)
+        logger.info(step)
 
 
 
