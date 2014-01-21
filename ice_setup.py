@@ -840,16 +840,6 @@ def get_repo_path(repo_dir_name=None):
     return repo_path
 
 
-def destination_repo_path(path, sep='ceph-repo', prefix='/opt/ICE/local-repo'):
-    """
-    Creates the final destination absolute path for the ceph repo files and the
-    gpg key
-    """
-    end_part = path.split(sep)[-1]
-    if end_part.startswith('/'):  # remove initial slash
-        end_part = end_part[1:]
-    return os.path.join(prefix, end_part)
-
 # =============================================================================
 # Prompts
 # =============================================================================
@@ -976,6 +966,9 @@ def configure_remotes(repo_path=None):
     Configure the current host so that Calamari can serve as a repo server for
     remote hosts.
     """
+    logger.info('*'*80)
+    logger.info('repository configuration for remote hosts')
+    logger.info('*'*80)
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
     # XXX Prompt the user for the FQDN for the Calamari Server
@@ -1020,16 +1013,16 @@ def configure_local(repo_path=None):
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
     """
+    logger.info('*'*80)
+    logger.info('local repository configuration')
+    logger.info('*'*80)
     repo_dest_prefix = '/opt/ICE'
+    repo_dest_dir = os.path.join(repo_dest_prefix, 'local-repo')
 
     if not repo_path:  # fallback to our location
         repo_path = get_repo_path(repo_dir_name='local-repo')
 
-    gpg_path = destination_repo_path(
-        os.path.join(repo_path, 'release.asc'),
-        sep='local-repo',
-        prefix='/opt/ICE/local-repo',
-    )
+    gpg_path = os.path.join(repo_dest_dir, 'release.asc')
     gpg_url_path = 'file://%s' % gpg_path
 
     repo_url_path = 'file://%s' % os.path.join(
