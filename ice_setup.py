@@ -1032,10 +1032,9 @@ def configure_local(repo_path=None):
     )
     gpg_url_path = 'file://%s' % gpg_path
 
-    repo_url_path = 'file://%s' % destination_repo_path(
-        repo_path,
-        sep='local-repo',
-        prefix=repo_dest_prefix,
+    repo_url_path = 'file://%s' % os.path.join(
+        repo_dest_prefix,
+        'local-repo',
     )
 
     # overwrite the repo with the new packages
