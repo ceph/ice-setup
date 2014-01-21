@@ -809,36 +809,38 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     that the contents are as up to date as possible
     """
     if not os.path.exists(os.path.dirname(destination)):
+        logger.info('creating destination path: %s' % destination)
         os.makedirs(destination, 0755)
 
     # remove destination to ensure we get a fresh copy
     try:
         shutil.rmtree(destination)
+        logger.debug('ensuring destination is new')
+        logger.debug('removed destination directory: %s' % destination)
     except OSError:
-        os.mkdir(destination)
+        pass
 
     # now copy the contents
     shutil.copytree(source, destination)
-
-    # finally remove the source
-    shutil.rmtree(source)
+    logger.debug('copied contents from: %s to %s' % (source, destination))
 
 
 def get_repo_path(repo_dir_name=None):
     """
-    Calculates the repository location of the repository files, for
-    example if this script runs alongside the sources it would get the absolute
-    path for the ``sources`` directory relative to this script.
+    Calculates the repository location of the repository files, for example if
+    this script runs alongside the sources it would get the absolute path for
+    the ``ceph-repo`` or ``local-repo`` directories relative to this script.
     """
     repo_dir_name = repo_dir_name or 'ceph-repo'
     current_dir = os.path.abspath(os.path.dirname(__file__))
     repo_path = os.path.join(current_dir, repo_dir_name)
     if not os.path.exists(repo_path):
         raise FileNotFound(repo_path)
+    logger.debug('detected repository path: %s', repo_path)
     return repo_path
 
 
-def destination_repo_path(path, sep='ceph-repo', prefix='/opt/ICE/ceph-repo'):
+def destination_repo_path(path, sep='ceph-repo', prefix='/opt/ICE/local-repo'):
     """
     Creates the final destination absolute path for the ceph repo files and the
     gpg key
@@ -932,23 +934,37 @@ class Configure(object):
     from ceph.com that will have all the packages needed to create a
     repository.
 
-    Optional arguments:
+    Commands:
 
-      [tar.gz]    A tar.gz file to set the repository
+      all         Both local and remote repo
+      local       Local repo only, to install Calamari and/or ceph-deploy
+      remote      Remote repo only, to be used for all remote node package
+                  managers
     """)
 
     def __init__(self, argv):
         self.argv = argv
 
     def parse_args(self):
-        parser = Transport(self.argv)
+        options = ['all', 'local', 'remote']
+        parser = Transport(self.argv, options=options)
         parser.catch_help = self._help
         parser.parse_args()
 
         sudo_check()
 
-        repo_path = parser.arguments[0] if parser.arguments else None
-        configure_local(repo_path=repo_path)
+        if parser.has('all'):
+            repo_path = parser.get('all')
+            configure_local(repo_path=repo_path)
+            configure_remotes(repo_path=repo_path)
+
+        elif parser.has('local'):
+            repo_path = parser.get('local')
+            configure_local(repo_path=repo_path)
+
+        elif parser.has('remote'):
+            repo_path = parser.get('remote')
+            configure_remotes(repo_path=repo_path)
 
 
 class Install(object):
@@ -964,7 +980,8 @@ def configure_remotes(repo_path=None):
 
     # XXX Prompt the user for the FQDN for the Calamari Server
     fallback_fqdn = get_fqdn()
-    logger.info('this host will be used to host packages and act as a repository for other nodes')
+    logger.info('this host will be used to host packages')
+    logger.info('act as a repository for other nodes')
     fqdn = prompt('provide the FQDN for this host:', default=fallback_fqdn)
     protocol = prompt(
         'what protocol would this host use (http or https)?',
@@ -975,15 +992,18 @@ def configure_remotes(repo_path=None):
     if not repo_path:  # fallback to our location
         repo_path = get_repo_path()
 
-    # XXX need to make sure this is correct
-    gpg_path = destination_repo_path(
-        os.path.join(repo_path, 'release.asc')
-    )
     gpg_url = '%s://%s/static/ceph-repo/release.asc' % (protocol, fqdn)
     repo_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
 
     # overwrite the repo with the new packages
-    overwrite_dir(repo_path)
+    overwrite_dir(
+        repo_path,
+        destination=os.path.join(
+            repo_dest_prefix,
+            'ceph-repo',
+        )
+
+    )
 
     logger.info('this host is now configured as a repository remote nodes')
     logger.info('you can run ceph-deploy to install using this host')
@@ -1005,15 +1025,27 @@ def configure_local(repo_path=None):
     if not repo_path:  # fallback to our location
         repo_path = get_repo_path(repo_dir_name='local-repo')
 
-    # XXX need to make sure this is correct
     gpg_path = destination_repo_path(
-        os.path.join(repo_path, 'release.asc')
+        os.path.join(repo_path, 'release.asc'),
+        sep='local-repo',
+        prefix='/opt/ICE/local-repo',
     )
     gpg_url_path = 'file://%s' % gpg_path
-    repo_url_path = 'file://%s' % destination_repo_path(repo_path)
+
+    repo_url_path = 'file://%s' % destination_repo_path(
+        repo_path,
+        sep='local-repo',
+        prefix=repo_dest_prefix,
+    )
 
     # overwrite the repo with the new packages
-    overwrite_dir(repo_path)
+    overwrite_dir(
+        repo_path,
+        destination=os.path.join(
+            repo_dest_prefix,
+            'local-repo',
+        )
+    )
 
     distro = get_distro()
     distro.pkg_manager.create_repo_file(
@@ -1074,8 +1106,6 @@ def default():
     logger.info('with the following steps:')
     for step in configure_steps:
         logger.info(step)
-
-
 
 
 def interactive_help(mode='interactive mode'):
