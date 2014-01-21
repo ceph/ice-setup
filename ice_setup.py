@@ -528,7 +528,6 @@ class Yum(object):
         cmd = [
             'yum',
             '-y',
-            '-q',
             'install',
         ]
         cmd.append(package)
@@ -572,7 +571,6 @@ class Apt(object):
             'env',
             'DEBIAN_FRONTEND=noninteractive',
             'apt-get',
-            '-q',
             'install',
             '--assume-yes',
         ]
@@ -633,7 +631,7 @@ def run(cmd, **kw):
             if out == '' and process.poll() is not None:
                 break
             if out != '':
-                logger.debug(out)
+                logger.debug(out.strip('\n'))
                 sys.stdout.flush()
 
     returncode = process.wait()
@@ -1054,29 +1052,18 @@ def configure_local(repo_path=None):
     logger.info('this host is now configured as a repository for ceph-deploy, Calamari, and ceph')
 
 
-def install(package):
-    """
-    Perform a package installation (e.g. Calamari or ceph-deploy) in the
-    current host, abstracted away from the underlying package manager.
-    """
-    distro = get_distro()
-    distro.pkg_manager.install(package)
-
-
-def configure_ice():
-    """
-    """
-    logger.debug('configuring the ICE node as a repository host')
-
-
-def install_calamari():
+def install_calamari(distro=None):
     """ Installs the Calamari web application """
-    logger.debug('installing Calamari')
+    distro = distro or get_distro()
+    logger.debug('installing Calamari...')
+    distro.pkg_manager.install('calamari')
 
 
-def install_ceph_deploy():
+def install_ceph_deploy(distro=None):
     """ Installs ceph-deploy """
-    logger.debug('installing ceph-deploy')
+    distro = distro or get_distro()
+    logger.debug('installing ceph-deploy...')
+    distro.pkg_manager.install('ceph-deploy')
 
 
 def default():
@@ -1091,13 +1078,20 @@ def default():
         '1. Configure the ICE Node (current host) as a repository Host',
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
-        '4. Open the Calamari web interface',
+        '4. Configure this host as a ceph repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
     logger.info('with the following steps:')
     for step in configure_steps:
         logger.info(step)
+    configure_local()
+    if prompt_bool('do you want to install the Calamari package?'):
+        install_calamari()
+    if prompt_bool('do you want to install the ceph-deploy package?'):
+        install_ceph_deploy()
+    configure_remotes()
+
 
 
 def interactive_help(mode='interactive mode'):
@@ -1199,4 +1193,4 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        raise SystemExit()
+        raise SystemExit('')
