@@ -115,18 +115,6 @@ def color_format(verbose=False):
     return ColoredFormatter(color_format)
 
 
-def log_header():
-    """
-    Simple helper to get the header and the version logged at
-    debug level to the console
-    """
-    for line in help_heather.split('\n'):
-        logger.info(line)
-    logger.info('      Inktank Ceph Enterprise Setup')
-    logger.info('      Version: %s', __version__)
-    logger.info('')
-
-
 # =============================================================================
 # argument parser
 # =============================================================================
@@ -955,9 +943,6 @@ class Configure(object):
             configure_remotes(repo_path=repo_path)
 
 
-class Install(object):
-    pass
-
 
 def configure_remotes(repo_path=None):
     """
@@ -998,11 +983,12 @@ def configure_remotes(repo_path=None):
 
     logger.info('this host is now configured as a repository remote nodes')
     logger.info('you can run ceph-deploy to install using this host')
-    logger.info('with the following command:')
+    logger.info('with the following commands:')
     cd_cmd = 'ceph-deploy install --repo-url %s --gpg-url %s {nodes}' % (
         repo_url,
         gpg_url,
     )
+    logger.info('ceph-deploy new {nodes}')
     logger.info(cd_cmd)
 
 
@@ -1049,7 +1035,8 @@ def configure_local(repo_path=None):
 
     # call update on the package manager
     distro.pkg_manager.update()
-    logger.info('this host is now configured as a repository for ceph-deploy, Calamari, and ceph')
+    logger.info('this host now has a local repository for ceph-deploy, and Calamari')
+    logger.info('you can install those packages with your package manager')
 
 
 def install_calamari(distro=None):
@@ -1127,9 +1114,7 @@ def ice_help():
 
     Subcommands:
 
-      install           Installation of Calamari or ceph-deploy
       configure         Configuration of the ICE node
-      open              Open the Calamari web interface
     """
     return '%s\n%s\n%s\n%s' % (
         help_heather,
@@ -1151,10 +1136,6 @@ def sudo_check():
 
 @catches(ICEError)
 def main(argv=None):
-    # TODO:
-    # * add the user prompts for first time runs
-    # * implement hybrid behavior via commands and/or prompts
-    #   ice_setup.py install calamari
     options = [['-v', '--verbose']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
