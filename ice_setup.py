@@ -1103,7 +1103,6 @@ def interactive_help(mode='interactive mode'):
 # =============================================================================
 
 command_map = {
-    'install': Install,
     'configure': Configure,
 }
 
