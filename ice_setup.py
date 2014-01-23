@@ -833,7 +833,7 @@ def get_repo_path(repo_dir_name=None):
 
 def prompt_bool(question, _raw_input=None):
     input_prompt = _raw_input or raw_input
-    prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['DEBUG']), RESET_SEQ)
+    prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['INFO']), RESET_SEQ)
     prompt_format = '{prefix}{question} '.format(prefix=prefix, question=question)
     response = input_prompt(prompt_format)
     try:
@@ -943,7 +943,6 @@ class Configure(object):
             configure_remotes(repo_path=repo_path)
 
 
-
 def configure_remotes(repo_path=None):
     """
     Configure the current host so that Calamari can serve as a repo server for
@@ -957,7 +956,7 @@ def configure_remotes(repo_path=None):
     # XXX Prompt the user for the FQDN for the Calamari Server
     fallback_fqdn = get_fqdn()
     logger.info('this host will be used to host packages')
-    logger.info('act as a repository for other nodes')
+    logger.info('and will act as a repository for other nodes')
     fqdn = prompt('provide the FQDN for this host:', default=fallback_fqdn)
     protocol = prompt(
         'what protocol would this host use (http or https)?',
@@ -1072,13 +1071,14 @@ def default():
     logger.info('with the following steps:')
     for step in configure_steps:
         logger.info(step)
-    configure_local()
+    if prompt_bool('do you want to configure this host as a local repo for Calamari and ceph-deploy?'):
+        configure_local()
     if prompt_bool('do you want to install the Calamari package?'):
         install_calamari()
     if prompt_bool('do you want to install the ceph-deploy package?'):
         install_ceph_deploy()
-    configure_remotes()
-
+    if prompt_bool('do you want to configure this host as a repo for ceph?'):
+        configure_remotes()
 
 
 def interactive_help(mode='interactive mode'):
