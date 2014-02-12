@@ -948,9 +948,6 @@ def configure_remotes(repo_path=None):
     Configure the current host so that Calamari can serve as a repo server for
     remote hosts.
     """
-    logger.info('*'*80)
-    logger.info('repository configuration for remote hosts')
-    logger.info('*'*80)
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
     # XXX Prompt the user for the FQDN for the Calamari Server
@@ -996,9 +993,6 @@ def configure_local(repo_path=None):
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
     """
-    logger.info('*'*80)
-    logger.info('local repository configuration')
-    logger.info('*'*80)
     repo_dest_prefix = '/opt/ICE'
     repo_dest_dir = os.path.join(repo_dest_prefix, 'local-repo')
 
@@ -1072,12 +1066,27 @@ def default():
     for step in configure_steps:
         logger.info(step)
     if prompt_bool('do you want to configure this host as a local repo for Calamari and ceph-deploy?'):
+        logger.info('')
+        logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
+        logger.info('')
         configure_local()
+
     if prompt_bool('do you want to install the Calamari package?'):
+        logger.info('')
+        logger.info('{markup} Step 2: Calamari installation {markup}'.format(markup='===='))
+        logger.info('')
         install_calamari()
+
     if prompt_bool('do you want to install the ceph-deploy package?'):
+        logger.info('')
+        logger.info('{markup} Step 3: ceph-deploy installation {markup}'.format(markup='===='))
+        logger.info('')
         install_ceph_deploy()
+
     if prompt_bool('do you want to configure this host as a repo for ceph?'):
+        logger.info('')
+        logger.info('{markup} Step 4: Ceph repository setup {markup}'.format(markup='===='))
+        logger.info('')
         configure_remotes()
 
 
@@ -1087,9 +1096,9 @@ def interactive_help(mode='interactive mode'):
     like setting up the repository for remote nodes, that will provide the same
     information when the interactive mode is running.
     """
-    logger.info('*'*80)
-    logger.info(mode)
-    logger.info('*'*80)
+    logger.info('')
+    logger.info('{markup} {mode} {markup}'.format(markup='====', mode=mode))
+    logger.info('')
     logger.info('follow the prompts to complete the %s', mode)
     logger.info('if specific actions are required (e.g. just install Calamari)')
     logger.info('cancel this script with Ctrl-C, and see the help menu for details')
