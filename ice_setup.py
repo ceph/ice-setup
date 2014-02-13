@@ -435,6 +435,29 @@ gpgkey={gpg_url}
 
 ice_list_template = """deb {repo_url} {codename} main\n"""
 
+ceph_deploy_rc = """
+# This file was automatically generated after ice_setup.py was run. It provides
+# the repository url and GPG url environment variables that ceph-deploy needs
+# when installing from custom repository locations.
+#
+# To make use of this file just source it from your current shell and then run
+# ceph-deploy to install ceph remotely.
+
+export CEPH_DEPLOY_REPO_URL={repo_url}
+export CEPH_DEPLOY_GPG_URL={gpg_url}
+
+echo "ceph-deploy environment variables set:"
+echo "CEPH_DEPLOY_REPO_URL="$CEPH_DEPLOY_REPO_URL
+echo "CEPH_DEPLOY_GPG_URL="$CEPH_DEPLOY_GPG_URL
+
+echo "You can now run ceph-deploy to install ceph from the custom location"
+echo "on nodes with the following commands:"
+echo
+echo "    ceph-deploy new {{nodes}}"
+echo "    ceph-deploy install {{nodes}}"
+echo
+echo "Replace {{nodes}} with the server short hostnames for installation"
+"""
 
 # =============================================================================
 # Distributions
@@ -977,15 +1000,14 @@ def configure_remotes(repo_path=None):
 
     )
 
-    logger.info('this host is now configured as a repository remote nodes')
-    logger.info('you can run ceph-deploy to install using this host')
-    logger.info('with the following commands:')
-    cd_cmd = 'ceph-deploy install --repo-url %s --gpg-url %s {nodes}' % (
-        repo_url,
-        gpg_url,
-    )
-    logger.info('ceph-deploy new {nodes}')
-    logger.info(cd_cmd)
+    with open('ceph-deploy.rc', 'w') as rc_file:
+        contents = ceph_deploy_rc.format(repo_url=repo_url, gpg_url=gpg_url)
+        rc_file.write(contents)
+    logger.info('created a file with information for ceph-deploy: ceph-deploy.rc')
+    logger.info('source it with your shell before installing ceph on remote nodes:')
+    logger.info('')
+    logger.info('    source ceph-deploy.rc')
+    logger.info('')
 
 
 def configure_local(repo_path=None):
