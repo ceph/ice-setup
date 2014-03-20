@@ -96,7 +96,6 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         levelname = record.levelname
-        truncated_level = record.levelname[:6]
         if levelname in COLORS:
             levelname_color = COLOR_SEQ % (30 + COLORS[levelname]) + '-->' + RESET_SEQ
             record.color_levelname = levelname_color
