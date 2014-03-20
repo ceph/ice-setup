@@ -436,26 +436,19 @@ ice_list_template = """deb {repo_url} {codename} main\n"""
 
 ceph_deploy_rc = """
 # This file was automatically generated after ice_setup.py was run. It provides
-# the repository url and GPG url environment variables that ceph-deploy needs
-# when installing from custom repository locations.
+# the repository url and GPG information so that ceph-deploy can install the
+# repositories in remote hosts.
 #
-# To make use of this file just source it from your current shell and then run
-# ceph-deploy to install ceph remotely.
 
-export CEPH_DEPLOY_REPO_URL={repo_url}
-export CEPH_DEPLOY_GPG_URL={gpg_url}
+[{ice_version}]
+baseurl={repo_url}
+gpgkey={gpg_url}
+default = True
+extra-repos = ceph
 
-echo "ceph-deploy environment variables set:"
-echo "CEPH_DEPLOY_REPO_URL="$CEPH_DEPLOY_REPO_URL
-echo "CEPH_DEPLOY_GPG_URL="$CEPH_DEPLOY_GPG_URL
-
-echo "You can now run ceph-deploy to install ceph from the custom location"
-echo "on nodes with the following commands:"
-echo
-echo "    ceph-deploy new {{nodes}}"
-echo "    ceph-deploy install {{nodes}}"
-echo
-echo "Replace {{nodes}} with the server short hostnames for installation"
+[ceph]
+baseurl={repo_url}
+gpgkey={gpg_url}
 """
 
 # =============================================================================
