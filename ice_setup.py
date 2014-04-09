@@ -440,15 +440,31 @@ ceph_deploy_rc = """
 # repositories in remote hosts.
 #
 
+# ceph-deploy subcommands
+
+[ceph-deploy-calamari]
+master = {master}
+
+
+# Repositories
+
+[calamari-minion]
+name=Calamari
+baseurl={minion_url}
+#baseurl={minion_url}static/el6
+gpgcheck=0
+enabled=1
+extra-repos = ceph
+
 [{ice_version}]
-baseurl={repo_url}
-gpgkey={gpg_url}
+baseurl={calamari_url}
+gpgkey={calamari_gpg_url}
 default = True
 extra-repos = ceph
 
 [ceph]
-baseurl={repo_url}
-gpgkey={gpg_url}
+baseurl={ceph_url}
+gpgkey={ceph_gpg_url}
 """
 
 # =============================================================================
@@ -958,14 +974,11 @@ class Configure(object):
             configure_remotes(repo_path=repo_path)
 
 
-def configure_remotes(repo_path=None):
+def fqdn_with_protocol():
     """
-    Configure the current host so that Calamari can serve as a repo server for
-    remote hosts.
+    Prompt the user for the FQDN of the current server along with the
+    protocol to be used so that we can configure the repositories.
     """
-    repo_dest_prefix = '/opt/calamari/webapp/content'
-
-    # XXX Prompt the user for the FQDN for the Calamari Server
     fallback_fqdn = get_fqdn()
     logger.info('this host will be used to host packages')
     logger.info('and will act as a repository for other nodes')
@@ -975,31 +988,55 @@ def configure_remotes(repo_path=None):
         default='http',
         lowercase=True,
     )
+    return protocol, fqdn
+
+
+def configure_remotes(repo_name, repo_path=None, destination_name=None):
+    """
+    Configure the current host so that Calamari can serve as a repo server for
+    remote hosts. Some abstraction here allows us to configure any number of
+    different repositories to be hosted by the Calamari app.
+
+    :param repo_name: the name of the repository, that will be used as the
+    destination dir.
+
+    :param repo_path: optionally specify the actual repository path to be moved
+
+    :param destination_name: defaults to ``repo_name``, used to use a new
+    destination name, e.g. 'ceph0.80' to help with versioning.
+    """
+    destination_name = destination_name or repo_name
+    repo_dest_prefix = '/opt/calamari/webapp/content'
 
     if not repo_path:  # fallback to our location
-        repo_path = get_repo_path()
-
-    gpg_url = '%s://%s/static/ceph-repo/release.asc' % (protocol, fqdn)
-    repo_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
+        repo_path = get_repo_path(repo_name)
 
     # overwrite the repo with the new packages
     overwrite_dir(
         repo_path,
         destination=os.path.join(
             repo_dest_prefix,
-            'ceph-repo',
+            destination_name,
         )
 
     )
 
-    with open('ceph-deploy.rc', 'w') as rc_file:
-        contents = ceph_deploy_rc.format(repo_url=repo_url, gpg_url=gpg_url)
+
+def configure_ceph_deploy(master, minion_url, ceph_url, ceph_gpg_url):
+    """
+    Write the ceph-deploy conf to automagically tell ceph-deploy to use
+    the right repositories and flags without making the user specify them
+    """
+    cephdeploy_conf = os.path.expanduser(u'~/.cephdeploy.conf')
+    with open(cephdeploy_conf, 'w') as rc_file:
+        contents = ceph_deploy_rc.format(
+            master=master,
+            minion_url=minion_url,
+            ceph_url=ceph_url,
+            ceph_gpg_url=ceph_gpg_url,
+        )
+
         rc_file.write(contents)
-    logger.info('created a file with information for ceph-deploy: ceph-deploy.rc')
-    logger.info('source it with your shell before installing ceph on remote nodes:')
-    logger.info('')
-    logger.info('    source ceph-deploy.rc')
-    logger.info('')
 
 
 def configure_local(repo_path=None):
@@ -1098,10 +1135,31 @@ def default():
         install_ceph_deploy()
 
     if prompt_bool('do you want to configure this host as a repo for ceph?'):
-        logger.info('')
-        logger.info('{markup} Step 4: Ceph repository setup {markup}'.format(markup='===='))
-        logger.info('')
-        configure_remotes()
+        protocol, fqdn = fqdn_with_protocol()
+        for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
+            logger.info('')
+            logger.info('\
+                {markup} \
+                Step {step}: {repo} repository setup \
+                {markup}'.format(markup='====', step=step, repo=repo))
+            logger.info('')
+            configure_remotes(repo)
+
+        # create the proper URLs for the repos
+        minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
+        ceph_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
+        ceph_gpg_url = '%s://%s/static/ceph-repo/release.asc' % (
+            protocol,
+            fqdn
+        )
+
+        # write the ceph-deploy configuration file with the new repo info
+        configure_ceph_deploy(
+            fqdn,
+            minion_url,
+            ceph_url,
+            ceph_gpg_url,
+        )
 
 
 def interactive_help(mode='interactive mode'):
