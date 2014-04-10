@@ -1109,57 +1109,62 @@ def default():
         '1. Configure the ICE Node (current host) as a repository Host',
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
-        '4. Configure this host as a ceph repository for remote hosts',
+        '4. Configure host as a ceph and calamari minion repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
     logger.info('with the following steps:')
     for step in configure_steps:
         logger.info(step)
-    if prompt_bool('do you want to configure this host as a local repo for Calamari and ceph-deploy?'):
-        logger.info('')
-        logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
-        logger.info('')
-        configure_local()
 
-    if prompt_bool('do you want to install the Calamari package?'):
-        logger.info('')
-        logger.info('{markup} Step 2: Calamari installation {markup}'.format(markup='===='))
-        logger.info('')
-        install_calamari()
+    # step one, we can have lots of fun
+    # configure local repos for calamari and ceph-deploy
+    logger.info('')
+    logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
+    logger.info('')
+    configure_local()
 
-    if prompt_bool('do you want to install the ceph-deploy package?'):
+    # step two, there's so much we can do
+    # install calamari
+    logger.info('')
+    logger.info('{markup} Step 2: Calamari installation {markup}'.format(markup='===='))
+    logger.info('')
+    install_calamari()
+
+    # step three, it's just you for me
+    # install ceph-deploy
+    logger.info('')
+    logger.info('{markup} Step 3: ceph-deploy installation {markup}'.format(markup='===='))
+    logger.info('')
+    install_ceph_deploy()
+
+    # step four, I can give you more
+    # configure current host to serve ceph/minion packages
+    protocol, fqdn = fqdn_with_protocol()
+    for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
         logger.info('')
-        logger.info('{markup} Step 3: ceph-deploy installation {markup}'.format(markup='===='))
+        logger.info('\
+            {markup} \
+            Step {step}: {repo} repository setup \
+            {markup}'.format(markup='====', step=step, repo=repo))
         logger.info('')
-        install_ceph_deploy()
+        configure_remotes(repo)
 
-    if prompt_bool('do you want to configure this host as a repo for ceph?'):
-        protocol, fqdn = fqdn_with_protocol()
-        for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
-            logger.info('')
-            logger.info('\
-                {markup} \
-                Step {step}: {repo} repository setup \
-                {markup}'.format(markup='====', step=step, repo=repo))
-            logger.info('')
-            configure_remotes(repo)
+    # create the proper URLs for the repos
+    minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
+    ceph_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
+    ceph_gpg_url = '%s://%s/static/ceph-repo/release.asc' % (
+        protocol,
+        fqdn
+    )
 
-        # create the proper URLs for the repos
-        minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
-        ceph_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
-        ceph_gpg_url = '%s://%s/static/ceph-repo/release.asc' % (
-            protocol,
-            fqdn
-        )
-
-        # write the ceph-deploy configuration file with the new repo info
-        configure_ceph_deploy(
-            fqdn,
-            minion_url,
-            ceph_url,
-            ceph_gpg_url,
-        )
+    # write the ceph-deploy configuration file with the new repo info
+    configure_ceph_deploy(
+        fqdn,
+        minion_url,
+        ceph_url,
+        ceph_gpg_url,
+    )
 
 
 def interactive_help(mode='interactive mode'):
