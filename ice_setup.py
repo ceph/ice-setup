@@ -842,7 +842,7 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     logger.debug('copied contents from: %s to %s' % (source, destination))
 
 
-def get_repo_path(repo_dir_name=None):
+def get_repo_path(repo_dir_name=None, traverse=False):
     """
     Calculates the repository location of the repository files, for example if
     this script runs alongside the sources it would get the absolute path for
@@ -851,6 +851,12 @@ def get_repo_path(repo_dir_name=None):
     repo_dir_name = repo_dir_name or 'ceph-repo'
     current_dir = os.path.abspath(os.path.dirname(__file__))
     repo_path = os.path.join(current_dir, repo_dir_name)
+    if traverse:
+        for root, dirs, files in os.walk(current_dir):
+            # be blatant here so we break if the dir is not there
+            repo_path = os.path.join(repo_path, dirs[0])
+            break
+
     if not os.path.exists(repo_path):
         raise FileNotFound(repo_path)
     logger.debug('detected repository path: %s', repo_path)
@@ -991,7 +997,11 @@ def fqdn_with_protocol():
     return protocol, fqdn
 
 
-def configure_remotes(repo_name, repo_path=None, destination_name=None):
+def configure_remotes(
+        repo_name,
+        repo_path=None,
+        destination_name=None,
+        versioned=False):
     """
     Configure the current host so that Calamari can serve as a repo server for
     remote hosts. Some abstraction here allows us to configure any number of
@@ -1004,12 +1014,17 @@ def configure_remotes(repo_name, repo_path=None, destination_name=None):
 
     :param destination_name: defaults to ``repo_name``, used to use a new
     destination name, e.g. 'ceph0.80' to help with versioning.
+
+    :param versioned: if the repository is versioned (e.g. 'ceph-repo/0.80')
+    then traverse one level in and use the first directory # XXX magic
     """
     destination_name = destination_name or repo_name
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
     if not repo_path:  # fallback to our location
-        repo_path = get_repo_path(repo_name)
+        # if we need to look for a versioned directory, tell get_repo_path to
+        # traverse.
+        repo_path = get_repo_path(repo_name, traverse=versioned)
 
     # overwrite the repo with the new packages
     overwrite_dir(
@@ -1138,17 +1153,30 @@ def default():
     logger.info('')
     install_ceph_deploy()
 
-    # step four, I can give you more
-    # configure current host to serve ceph/minion packages
+    # confirm the right protocol and fqdn for this host
     protocol, fqdn = fqdn_with_protocol()
-    for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
-        logger.info('')
-        logger.info('\
-            {markup} \
-            Step {step}: {repo} repository setup \
-            {markup}'.format(markup='====', step=step, repo=repo))
-        logger.info('')
-        configure_remotes(repo)
+
+    # step four, I can give you more
+    # configure current host to serve ceph packages
+    #for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
+    logger.info('')
+    logger.info('\
+        {markup} \
+        Step 4: ceph repository setup \
+        {markup}'.format(markup='===='))
+    logger.info('')
+    # configure the repo, tell it we want to keep versions around
+    configure_remotes('ceph-repo', versioned=True)
+
+    # step five, don't you know that the time has arrived
+    # configure current host to serve minion packages
+    logger.info('')
+    logger.info('\
+        {markup} \
+        Step 5: minion repository setup \
+        {markup}'.format(markup='===='))
+    logger.info('')
+    configure_remotes('minion-repo')
 
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
@@ -1236,17 +1264,16 @@ def main(argv=None):
     logger.addHandler(terminal_log)
     logger.setLevel(logging.DEBUG)
 
-    # parse first with no help set defaults later
+    # parse first with no help; set defaults later
     parser.catch_version = __version__
     parser.catch_help = ice_help()
     parser.dispatch()
 
-    # if dispatch did not catch anything now parse help
+    # if dispatch did not catch anything now, parse help
     parser.catches_help()
     parser.catches_version()
 
-    # XXX check for no arguments so we can use default, otherwise we
-    # would need to exit() on all the commands from above
+    # when no arguments are passed in, just use our default routine
     if not parser.arguments:
         sudo_check()
         default()
