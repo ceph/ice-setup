@@ -1026,6 +1026,14 @@ def configure_remotes(
         # traverse.
         repo_path = get_repo_path(repo_name, traverse=versioned)
 
+    if versioned:
+        # this means that we need to also grab the end part of the
+        # repo_path, as that represents the version that should also
+        # get used for the destination to avoid overwriting repos
+        destination_name = os.path.join(
+            destination_name, os.path.basename(repo_path)
+        )
+
     # overwrite the repo with the new packages
     overwrite_dir(
         repo_path,
