@@ -408,7 +408,7 @@ def make_exception_message(exc):
 ceph_deploy_yum_template = """
 [ceph_deploy]
 name=ceph_deploy packages for $basearch
-baseurl={repo_url}/$basearch
+baseurl={repo_url}
 enabled=1
 gpgcheck=1
 type=rpm-md
@@ -418,7 +418,7 @@ gpgkey={gpg_url}
 calamari_yum_template = """
 [calamari]
 name=calamari packages for $basearch
-baseurl={repo_url}/$basearch
+baseurl={repo_url}
 enabled=1
 gpgcheck=1
 type=rpm-md
