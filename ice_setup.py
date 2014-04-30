@@ -405,34 +405,30 @@ def make_exception_message(exc):
 # Templates
 # =============================================================================
 
-
-ice_repo_template = """
-[ice]
-name=ice packages for $basearch
+ceph_deploy_yum_template = """
+[ceph_deploy]
+name=ceph_deploy packages for $basearch
 baseurl={repo_url}/$basearch
 enabled=1
 gpgcheck=1
 type=rpm-md
 gpgkey={gpg_url}
+"""
 
-[ice-noarch]
-name=ice noarch packages
-baseurl={repo_url}/noarch
+calamari_yum_template = """
+[calamari]
+name=calamari packages for $basearch
+baseurl={repo_url}/$basearch
 enabled=1
-gpgcheck=1
-type=rpm-md
-gpgkey={gpg_url}
-
-[ice-source]
-name=ice source packages
-baseurl={repo_url}/SRPMS
-enabled=0
 gpgcheck=1
 type=rpm-md
 gpgkey={gpg_url}
 """
 
-ice_list_template = """deb {repo_url} {codename} main\n"""
+calamari_apt_template = """deb {repo_url} {codename} main\n"""
+
+ceph_deploy_apt_template = """deb {repo_url} {codename} main\n"""
+
 
 ceph_deploy_rc = """
 # This file was automatically generated after ice_setup.py was run. It provides
@@ -451,7 +447,6 @@ master = {master}
 [calamari-minion]
 name=Calamari
 baseurl={minion_url}
-#baseurl={minion_url}static/el6
 gpgcheck=0
 enabled=1
 extra-repos = ceph
@@ -466,6 +461,21 @@ extra-repos = ceph
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
 """
+
+# template mappings
+
+yum_templates = {
+    'calamari-server': calamari_yum_template,
+    'ceph-deploy': ceph_deploy_yum_template,
+}
+
+apt_templates = {
+    'calamari-server': calamari_apt_template,
+    'ceph-deploy': ceph_deploy_apt_template,
+}
+
+
+
 
 # =============================================================================
 # Distributions
@@ -518,13 +528,14 @@ def get_distro():
 class Yum(object):
 
     @classmethod
-    def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
+    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = file_name or 'ice.repo'
+        template = yum_templates[template_name]
         repo_file_path = os.path.join(etc_path, file_name)
         with open(repo_file_path, 'w') as repo_file:
-            contents = ice_repo_template.format(
+            contents = template.format(
                 gpg_url=gpg_url,
                 repo_url=repo_url,
             )
@@ -561,13 +572,14 @@ class Yum(object):
 class Apt(object):
 
     @classmethod
-    def create_repo_file(cls, repo_url, gpg_url, file_name=None, **kw):
+    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
         """add ceph deb repo to sources.list"""
         etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
         file_name = file_name or 'ice.list'
         list_file_path = os.path.join(etc_path, file_name)
+        template = apt_templates[template_name]
         with open(list_file_path, 'w') as list_file:
-            list_file.write(ice_list_template.format(
+            list_file.write(template.format(
                 repo_url=repo_url, codename=kw.pop('codename'))
             )
 
@@ -1062,23 +1074,26 @@ def configure_ceph_deploy(master, minion_url, ceph_url, ceph_gpg_url):
         rc_file.write(contents)
 
 
-def configure_local(repo_path=None):
+def configure_local(name, repo_path=None):
     """
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
+
+    :param name: The name of the repository to be configured, e.g. calamari-server
+                 or ceph-deploy
     """
     repo_dest_prefix = '/opt/ICE'
-    repo_dest_dir = os.path.join(repo_dest_prefix, 'local-repo')
+    repo_dest_dir = os.path.join(repo_dest_prefix, name)
 
     if not repo_path:  # fallback to our location
-        repo_path = get_repo_path(repo_dir_name='local-repo')
+        repo_path = get_repo_path(repo_dir_name=name)
 
     gpg_path = os.path.join(repo_dest_dir, 'release.asc')
     gpg_url_path = 'file://%s' % gpg_path
 
     repo_url_path = 'file://%s' % os.path.join(
         repo_dest_prefix,
-        'local-repo',
+        name,
     )
 
     # overwrite the repo with the new packages
@@ -1086,12 +1101,13 @@ def configure_local(repo_path=None):
         repo_path,
         destination=os.path.join(
             repo_dest_prefix,
-            'local-repo',
+            name,
         )
     )
 
     distro = get_distro()
     distro.pkg_manager.create_repo_file(
+        name,
         repo_url_path,
         gpg_url_path,
     )
@@ -1145,7 +1161,8 @@ def default():
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local()
+    configure_local('calamari-server')
+    configure_local('ceph-deploy')
 
     # step two, there's so much we can do
     # install calamari
