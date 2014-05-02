@@ -449,18 +449,12 @@ name=Calamari
 baseurl={minion_url}
 gpgcheck=0
 enabled=1
-extra-repos = ceph
-
-[{ice_version}]
-baseurl={calamari_url}
-gpgkey={calamari_gpg_url}
-default = True
-extra-repos = ceph
 
 [ceph]
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
 """
+
 
 # template mappings
 
@@ -864,7 +858,7 @@ def get_repo_path(repo_dir_name=None, traverse=False):
     current_dir = os.path.abspath(os.path.dirname(__file__))
     repo_path = os.path.join(current_dir, repo_dir_name)
     if traverse:
-        for root, dirs, files in os.walk(current_dir):
+        for root, dirs, files in os.walk(repo_path):
             # be blatant here so we break if the dir is not there
             repo_path = os.path.join(repo_path, dirs[0])
             break
@@ -1062,16 +1056,27 @@ def configure_ceph_deploy(master, minion_url, ceph_url, ceph_gpg_url):
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
     """
-    cephdeploy_conf = os.path.expanduser(u'~/.cephdeploy.conf')
-    with open(cephdeploy_conf, 'w') as rc_file:
-        contents = ceph_deploy_rc.format(
-            master=master,
-            minion_url=minion_url,
-            ceph_url=ceph_url,
-            ceph_gpg_url=ceph_gpg_url,
-        )
+    # ensure we write the config file in all these places because the $HOME
+    # location might not be what the user expected to be
+    configs = [
+        os.path.join(os.getcwd(), 'cephdeploy.conf'),
+        os.path.expanduser(u'~/.cephdeploy.conf'),
+    ]
+    sudoer_user = os.environ.get('SUDO_USER')
+    if sudoer_user:
+        sudoer_home = os.path.expanduser('~' + sudoer_user)
+        configs.append(os.path.join(sudoer_home, '.cephdeploy.conf'))
 
-        rc_file.write(contents)
+    for cephdeploy_conf in configs:
+        with open(cephdeploy_conf, 'w') as rc_file:
+            contents = ceph_deploy_rc.format(
+                master=master,
+                minion_url=minion_url,
+                ceph_url=ceph_url,
+                ceph_gpg_url=ceph_gpg_url,
+            )
+
+            rc_file.write(contents)
 
 
 def configure_local(name, repo_path=None):
@@ -1192,7 +1197,7 @@ def default():
         {markup}'.format(markup='===='))
     logger.info('')
     # configure the repo, tell it we want to keep versions around
-    configure_remotes('ceph-repo', versioned=True)
+    configure_remotes('ceph', versioned=True)
 
     # step five, don't you know that the time has arrived
     # configure current host to serve minion packages
@@ -1202,7 +1207,7 @@ def default():
         Step 5: minion repository setup \
         {markup}'.format(markup='===='))
     logger.info('')
-    configure_remotes('minion-repo')
+    configure_remotes('calamari-minions')
 
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
@@ -1269,7 +1274,7 @@ def sudo_check():
     is making use of `sudo`.
     """
     if os.getuid() != 0:
-        msg = 'This script needs to be executed with sudo (or by root)'
+        msg = 'This script needs to be executed with sudo'
         raise ICEError(msg)
 
 
