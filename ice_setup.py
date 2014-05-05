@@ -1116,6 +1116,7 @@ def configure_local(name, repo_path=None):
         repo_url_path,
         gpg_url_path,
         file_name='%s.repo' % name,
+        codename=distro.codename,
     )
 
     distro.pkg_manager.import_repo(
