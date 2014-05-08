@@ -525,7 +525,7 @@ class Yum(object):
     def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
-        file_name = file_name or 'ice.repo'
+        file_name = '%s.repo' % (file_name or 'ice')
         template = yum_templates[template_name]
         repo_file_path = os.path.join(etc_path, file_name)
         with open(repo_file_path, 'w') as repo_file:
@@ -569,7 +569,7 @@ class Apt(object):
     def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
         """add ceph deb repo to sources.list"""
         etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
-        file_name = file_name or 'ice.list'
+        file_name = '%.list' % (file_name or 'ice')
         list_file_path = os.path.join(etc_path, file_name)
         template = apt_templates[template_name]
         with open(list_file_path, 'w') as list_file:
