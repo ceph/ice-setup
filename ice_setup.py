@@ -453,6 +453,7 @@ enabled=1
 [ceph]
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
+default=true
 """
 
 
