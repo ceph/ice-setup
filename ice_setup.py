@@ -42,7 +42,7 @@ from textwrap import dedent
 
 __version__ = '0.0.1'
 
-help_heather = """
+help_header = """
 
 8888888      .d8888b.      8888888888
   888       d88P  Y88b     888
@@ -1262,7 +1262,7 @@ def ice_help():
       configure         Configuration of the ICE node
     """
     return '%s\n%s\n%s\n%s' % (
-        help_heather,
+        help_header,
         '  Inktank Ceph Enterprise Setup',
         version,
         dedent(commands),
