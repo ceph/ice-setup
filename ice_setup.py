@@ -569,7 +569,7 @@ class Apt(object):
     def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
         """add ceph deb repo to sources.list"""
         etc_path = kw.pop('etc_path', '/etc/apt/sources.list.d')
-        file_name = '%.list' % (file_name or 'ice')
+        file_name = '%s.list' % (file_name or 'ice')
         list_file_path = os.path.join(etc_path, file_name)
         template = apt_templates[template_name]
         with open(list_file_path, 'w') as list_file:
@@ -1115,7 +1115,7 @@ def configure_local(name, repo_path=None):
         name,
         repo_url_path,
         gpg_url_path,
-        file_name='%s.repo' % name,
+        file_name=name,
         codename=distro.codename,
     )
 
