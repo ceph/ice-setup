@@ -447,7 +447,7 @@ master = {master}
 [calamari-minion]
 name=Calamari
 baseurl={minion_url}
-gpgcheck=0
+gpgkey={minion_gpg_url}
 enabled=1
 proxy=_none_
 
@@ -1054,7 +1054,8 @@ def configure_remotes(
     )
 
 
-def configure_ceph_deploy(master, minion_url, ceph_url, ceph_gpg_url):
+def configure_ceph_deploy(master, minion_url, minion_gpg_url,
+                          ceph_url, ceph_gpg_url):
     """
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
@@ -1075,6 +1076,7 @@ def configure_ceph_deploy(master, minion_url, ceph_url, ceph_gpg_url):
             contents = ceph_deploy_rc.format(
                 master=master,
                 minion_url=minion_url,
+                minion_gpg_url=minion_gpg_url,
                 ceph_url=ceph_url,
                 ceph_gpg_url=ceph_gpg_url,
             )
@@ -1220,11 +1222,16 @@ def default():
         protocol,
         fqdn
     )
+    minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
+        protocol,
+        fqdn
+    )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
         fqdn,
         minion_url,
+        minion_gpg_url,
         ceph_url,
         ceph_gpg_url,
     )
