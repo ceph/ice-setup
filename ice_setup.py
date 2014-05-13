@@ -1214,9 +1214,9 @@ def default():
     configure_remotes('calamari-minions')
 
     # create the proper URLs for the repos
-    minion_url = '%s://%s/static/minion/el6' % (protocol, fqdn)
-    ceph_url = '%s://%s/static/ceph-repo' % (protocol, fqdn)
-    ceph_gpg_url = '%s://%s/static/ceph-repo/release.asc' % (
+    minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
+    ceph_url = '%s://%s/static/ceph' % (protocol, fqdn)
+    ceph_gpg_url = '%s://%s/static/ceph/release.asc' % (
         protocol,
         fqdn
     )
