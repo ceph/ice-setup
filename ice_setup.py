@@ -1136,7 +1136,7 @@ def install_calamari(distro=None):
     """ Installs the Calamari web application """
     distro = distro or get_distro()
     logger.debug('installing Calamari...')
-    distro.pkg_manager.install('calamari-server')
+    distro.pkg_manager.install('calamari-clients')
 
 
 def install_ceph_deploy(distro=None):
