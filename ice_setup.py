@@ -449,11 +449,13 @@ name=Calamari
 baseurl={minion_url}
 gpgcheck=0
 enabled=1
+proxy=_none_
 
 [ceph]
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
 default=true
+proxy=_none_
 """
 
 
