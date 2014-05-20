@@ -1229,6 +1229,10 @@ def default():
         ceph_gpg_url,
     )
 
+    logger.info('Setup has completed. To initialize Calamari run:')
+    logger.info('')
+    logger.info('    calamari-ctl initialize')
+
 
 def interactive_help(mode='interactive mode'):
     """
