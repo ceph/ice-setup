@@ -1016,6 +1016,8 @@ def configure_remotes(
     remote hosts. Some abstraction here allows us to configure any number of
     different repositories to be hosted by the Calamari app.
 
+    :returns destination_name
+
     :param repo_name: the name of the repository, that will be used as the
     destination dir.
 
@@ -1052,6 +1054,8 @@ def configure_remotes(
         )
 
     )
+
+    return destination_name
 
 
 def configure_ceph_deploy(master, minion_url, minion_gpg_url,
@@ -1203,7 +1207,7 @@ def default():
         {markup}'.format(markup='===='))
     logger.info('')
     # configure the repo, tell it we want to keep versions around
-    configure_remotes('ceph', versioned=True)
+    ceph_destination_name = configure_remotes('ceph', versioned=True)
 
     # step five, don't you know that the time has arrived
     # configure current host to serve minion packages
@@ -1217,10 +1221,11 @@ def default():
 
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
-    ceph_url = '%s://%s/static/ceph' % (protocol, fqdn)
-    ceph_gpg_url = '%s://%s/static/ceph/release.asc' % (
+    ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
+    ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
         protocol,
-        fqdn
+        fqdn,
+        ceph_destination_name
     )
     minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
         protocol,
