@@ -452,6 +452,7 @@ enabled=1
 proxy=_none_
 
 [ceph]
+name=Ceph
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
 default=true
