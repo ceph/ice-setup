@@ -1242,7 +1242,7 @@ def default():
         ceph_gpg_url,
     )
 
-    logger.info('Setup has completed. To initialize Calamari run:')
+    logger.info('Setup has completed. To initialize Calamari run (as root):')
     logger.info('')
     logger.info('    calamari-ctl initialize')
 
