@@ -425,6 +425,17 @@ type=rpm-md
 gpgkey={gpg_url}
 """
 
+ceph_yum_template = """
+[ceph]
+name=Ceph
+baseurl={repo_url}
+gpgkey={gpg_url}
+default=true
+proxy=_none_
+"""
+
+ceph_apt_template = """deb {repo_url} {codename} main\n"""
+
 calamari_apt_template = """deb {repo_url} {codename} main\n"""
 
 ceph_deploy_apt_template = """deb {repo_url} {codename} main\n"""
@@ -465,11 +476,13 @@ proxy=_none_
 yum_templates = {
     'calamari-server': calamari_yum_template,
     'ceph-deploy': ceph_deploy_yum_template,
+    'ceph': ceph_yum_template,
 }
 
 apt_templates = {
     'calamari-server': calamari_apt_template,
     'ceph-deploy': ceph_deploy_apt_template,
+    'ceph': ceph_apt_template,
 }
 
 
@@ -540,6 +553,15 @@ class Yum(object):
             repo_file.write(contents)
 
     @classmethod
+    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+        """print repo file as it would be written to yum.repos.d"""
+        template = yum_templates[template_name]
+        logger.info('Contents of %s repo file:' % template_name)
+        logger.info(template.format(
+            gpg_url=gpg_url, repo_url=repo_url)
+        )
+
+    @classmethod
     def import_repo(cls, gpg_path):
         """
         import the gpg key so that the repo is fully validated
@@ -580,6 +602,15 @@ class Apt(object):
             list_file.write(template.format(
                 repo_url=repo_url, codename=kw.pop('codename'))
             )
+
+    @classmethod
+    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+        """print deb repo as it would be written to sources.list"""
+        template = apt_templates[template_name]
+        logger.info('Contents of %s deb sources.list file:' % template_name )
+        logger.info(template.format(
+            repo_url=repo_url, codename=kw.pop('codename'))
+        )
 
     @classmethod
     def import_repo(cls, gpg_path):
@@ -1243,6 +1274,17 @@ def default():
         ceph_url,
         ceph_gpg_url,
     )
+
+    # Print the output of what would the repo file look for remotes
+    distro = get_distro()
+    distro.pkg_manager.print_repo_file(
+        'ceph',
+        repo_url=ceph_url,
+        gpg_url=ceph_gpg_url,
+        codename=distro.codename,
+    )
+
+
 
     logger.info('Setup has completed. To initialize Calamari run (as root):')
     logger.info('')
