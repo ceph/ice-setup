@@ -428,8 +428,8 @@ gpgkey={gpg_url}
 ceph_yum_template = """
 [ceph]
 name=Ceph
-baseurl={ceph_url}
-gpgkey={ceph_gpg_url}
+baseurl={repo_url}
+gpgkey={gpg_url}
 default=true
 proxy=_none_
 """
@@ -1277,8 +1277,8 @@ def default():
     distro = get_distro()
     distro.pkg_manager.print_repo_file(
         'ceph',
-        ceph_url,
-        ceph_gpg_url,
+        repo_url=ceph_url,
+        gpg_url=ceph_gpg_url,
         codename=distro.codename,
     )
 
