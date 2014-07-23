@@ -1284,11 +1284,14 @@ def default():
         codename=distro.codename,
     )
 
-
-
-    logger.info('Setup has completed. To initialize Calamari run (as root):')
+    logger.info('Setup has completed.')
+    logger.info('To install the repo files on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install repo {HOSTS}')
+    logger.info('')
+    logger.info('To initialize Calamari run (as root):')
     logger.info('')
     logger.info('    calamari-ctl initialize')
+    logger.info('')
 
 
 def interactive_help(mode='interactive mode'):
