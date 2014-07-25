@@ -1286,7 +1286,12 @@ def default():
 
     logger.info('Setup has completed.')
     logger.info('To install the repo files on remote nodes with ceph-deploy, run:')
-    logger.info('    ceph-deploy install repo {HOSTS}')
+    logger.info('    ceph-deploy install --repo {HOSTS}')
+    logger.info('')
+    logger.warning('If upgrading, `ceph-deploy install {HOSTS}` will also upgrade ceph on remote nodes')
+    logger.info('')
+    logger.info('To install ceph on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install {HOSTS}')
     logger.info('')
     logger.info('To initialize Calamari run (as root):')
     logger.info('')
