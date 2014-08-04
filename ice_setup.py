@@ -1284,11 +1284,22 @@ def default():
         codename=distro.codename,
     )
 
-
-
-    logger.info('Setup has completed. To initialize Calamari run (as root):')
+    logger.info('Setup has completed.')
+    logger.info('If installing Calamari for the first time:')
+    logger.info('')
+    logger.info('  Initialize Calamari (as root) by running:')
     logger.info('')
     logger.info('    calamari-ctl initialize')
+    logger.info('')
+
+    logger.info('To install the repo files on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install --repo {HOSTS}')
+    logger.info('')
+    logger.warning('If upgrading, `ceph-deploy install {HOSTS}` will also upgrade ceph on remote nodes')
+    logger.info('')
+    logger.info('To install ceph on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install {HOSTS}')
+    logger.info('')
 
 
 def interactive_help(mode='interactive mode'):
