@@ -1031,12 +1031,21 @@ def fqdn_with_protocol():
     fallback_fqdn = get_fqdn()
     logger.info('this host will be used to host packages')
     logger.info('and will act as a repository for other nodes')
+    if fallback_fqdn is None:
+        logger.warning('no FQDN could be detected for current host')
     fqdn = prompt('provide the FQDN for this host:', default=fallback_fqdn)
+
+    # make sure we do have a FQDN of some sort, complain otherwise
+    if not fqdn:
+        logger.error('a FQDN is required and was not provided, please try again')
+        return fqdn_with_protocol()
+
     protocol = prompt(
         'what protocol would this host use (http or https)?',
         default='http',
         lowercase=True,
     )
+
     return protocol, fqdn
 
 
