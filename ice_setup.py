@@ -668,6 +668,7 @@ debian = Debian
 def run(cmd, **kw):
     logger.info('Running command: %s' % ' '.join(cmd))
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
+    return_stdout = kw.pop('return_stdout', False)
 
     process = subprocess.Popen(
         cmd,
@@ -685,7 +686,7 @@ def run(cmd, **kw):
             if err != '':
                 logger.warning(err)
                 sys.stderr.flush()
-    if process.stdout:
+    if process.stdout and not return_stdout:
         while True:
             out = process.stdout.readline()
             if out == '' and process.poll() is not None:
@@ -701,6 +702,8 @@ def run(cmd, **kw):
             raise NonZeroExit(error_msg)
         else:
             logger.warning(error_msg)
+    if return_stdout:
+        return process.stdout.read()
 
 
 def run_call(cmd, **kw):
