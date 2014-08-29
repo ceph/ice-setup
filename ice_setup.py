@@ -533,6 +533,12 @@ def get_distro():
 
     return module
 
+def append_item_or_list(list_, append):
+    if isinstance(append, list)
+        list_.extend(append)
+    else
+        list_.append(append)
+
 
 # XXX These probably do not need to be full of classmethods but can be
 # instantiated when the distro detection happens
@@ -581,7 +587,7 @@ class Yum(object):
             '-y',
             'install',
         ]
-        cmd.append(package)
+        append_item_or_list(cmd, package)
         run(cmd)
 
     @classmethod
@@ -653,7 +659,7 @@ class Apt(object):
             'install',
             '--assume-yes',
         ]
-        cmd.append(package)
+        append_item_or_list(cmd, package)
         run(cmd)
 
     @classmethod
@@ -1230,7 +1236,8 @@ def install_calamari(distro=None):
     """ Installs the Calamari web application """
     distro = distro or get_distro()
     logger.debug('installing Calamari...')
-    distro.pkg_manager.install('calamari-clients')
+    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/calamari-server').split()
+    distro.pkg_manager.install(pkgs)
 
 
 def install_ceph_deploy(distro=None):
