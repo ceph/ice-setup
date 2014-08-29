@@ -612,7 +612,7 @@ class Yum(object):
         ]
         cmd.extend(rpmlist)
         # run command with cwd=path so rpm names are valid
-        return run(cmd, return_stdout=True, cwd=path)
+        return run_get_stdout(cmd, cwd=path)
 
 
 class Apt(object):
@@ -693,7 +693,7 @@ class Apt(object):
             '-F',
             '%p',
         ]
-        return run(cmd, return_stdout=True)
+        return run_get_stdout(cmd)
 
 
 class CentOS(object):
@@ -717,7 +717,6 @@ debian = Debian
 def run(cmd, **kw):
     logger.info('Running command: %s' % ' '.join(cmd))
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
-    return_stdout = kw.pop('return_stdout', False)
 
     process = subprocess.Popen(
         cmd,
@@ -735,7 +734,7 @@ def run(cmd, **kw):
             if err != '':
                 logger.warning(err)
                 sys.stderr.flush()
-    if process.stdout and not return_stdout:
+    if process.stdout:
         while True:
             out = process.stdout.readline()
             if out == '' and process.poll() is not None:
@@ -751,8 +750,28 @@ def run(cmd, **kw):
             raise NonZeroExit(error_msg)
         else:
             logger.warning(error_msg)
-    if return_stdout:
-        return process.stdout.read()
+
+
+def run_get_stdout(cmd, **kw):
+    """like run(), except return stdout rather than logging it"""
+    stop_on_nonzero = kw.pop('stop_on_nonzero', True)
+
+    stdout, stderr, returncode = run_call(cmd, kw)
+    if stderr:
+        while True:
+            err = stderr.readline()
+            if err != '':
+                logger.warning(err)
+                sys.stderr.flush()
+
+    if returncode != 0:
+        error_msg = "command returned non-zero exit status: %s" % returncode
+        if stop_on_nonzero:
+            raise NonZeroExit(error_msg)
+        else:
+            logger.warning(error_msg)
+
+    return stdout
 
 
 def run_call(cmd, **kw):
