@@ -28,6 +28,7 @@
 import logging
 import os
 import platform
+import re
 import shutil
 import socket
 import subprocess
@@ -533,6 +534,13 @@ def get_distro():
     return module
 
 
+def append_item_or_list(list_, append):
+    if isinstance(append, list):
+        list_.extend(append)
+    else:
+        list_.append(append)
+
+
 # XXX These probably do not need to be full of classmethods but can be
 # instantiated when the distro detection happens
 
@@ -580,13 +588,31 @@ class Yum(object):
             '-y',
             'install',
         ]
-        cmd.append(package)
+        append_item_or_list(cmd, package)
         run(cmd)
 
     @classmethod
     def update(cls):
         # stub
         pass
+
+    @classmethod
+    def enumerate_repo(cls, path):
+        """find rpms in path and return their package names"""
+        # make list of rpm files relative to path
+        rpmlist = list()
+        for dirpath, dirnames, filenames in os.walk(path):
+            rpmlist += [name for name in filenames
+                        if name.endswith('rpm')]
+        cmd = [
+            'rpm',
+            '-q',
+            '--queryformat=%{NAME} ',
+            '-p',
+        ]
+        cmd.extend(rpmlist)
+        # run command with cwd=path so rpm names are valid
+        return run_get_stdout(cmd, cwd=path)
 
 
 class Apt(object):
@@ -634,7 +660,7 @@ class Apt(object):
             'install',
             '--assume-yes',
         ]
-        cmd.append(package)
+        append_item_or_list(cmd, package)
         run(cmd)
 
     @classmethod
@@ -645,6 +671,29 @@ class Apt(object):
             'update',
         ]
         run(cmd)
+
+    @classmethod
+    def enumerate_repo(cls, path):
+        """find pkgs in path and return their package names"""
+        # first find origin from <path>/conf/distributions
+        distributions = os.path.join(path, 'conf', 'distributions')
+        with open(distributions, 'r') as distfile:
+            for line in distfile:
+                match = re.match(r'Origin: (.*)', line)
+                if match:
+                    origin = match.group(1)
+                    break
+        if not origin:
+            raise ICEError("Cannot find Origin in {distfile}".format(
+                           distfile=distfile))
+        cmd = [
+            'aptitude',
+            'search',
+            '?origin({origin})'.format(origin=origin),
+            '-F',
+            '%p',
+        ]
+        return run_get_stdout(cmd)
 
 
 class CentOS(object):
@@ -701,6 +750,28 @@ def run(cmd, **kw):
             raise NonZeroExit(error_msg)
         else:
             logger.warning(error_msg)
+
+
+def run_get_stdout(cmd, **kw):
+    """like run(), except return stdout rather than logging it"""
+    stop_on_nonzero = kw.pop('stop_on_nonzero', True)
+
+    stdout, stderr, returncode = run_call(cmd, kw)
+    if stderr:
+        while True:
+            err = stderr.readline()
+            if err != '':
+                logger.warning(err)
+                sys.stderr.flush()
+
+    if returncode != 0:
+        error_msg = "command returned non-zero exit status: %s" % returncode
+        if stop_on_nonzero:
+            raise NonZeroExit(error_msg)
+        else:
+            logger.warning(error_msg)
+
+    return stdout
 
 
 def run_call(cmd, **kw):
@@ -1185,7 +1256,8 @@ def install_calamari(distro=None):
     """ Installs the Calamari web application """
     distro = distro or get_distro()
     logger.debug('installing Calamari...')
-    distro.pkg_manager.install('calamari-clients')
+    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/calamari-server').split()
+    distro.pkg_manager.install(pkgs)
 
 
 def install_ceph_deploy(distro=None):
