@@ -28,6 +28,7 @@
 import logging
 import os
 import platform
+import re
 import shutil
 import socket
 import subprocess
@@ -588,6 +589,24 @@ class Yum(object):
         # stub
         pass
 
+    @classmethod
+    def enumerate_repo(cls, path):
+        """find rpms in path and return their package names"""
+        # make list of rpm files relative to path
+        rpmlist = list()
+        for dirpath, dirnames, filenames in os.walk(path):
+            rpmlist += [name for name in filenames
+                        if name.endswith('rpm')]
+        cmd = [
+            'rpm',
+            '-q',
+            '--queryformat=%{NAME} ',
+            '-p',
+        ]
+        cmd.extend(rpmlist)
+        # run command with cwd=path so rpm names are valid
+        return run(cmd, return_stdout=True, cwd=path)
+
 
 class Apt(object):
 
@@ -645,6 +664,29 @@ class Apt(object):
             'update',
         ]
         run(cmd)
+
+    @classmethod
+    def enumerate_repo(cls, path):
+        """find pkgs in path and return their package names"""
+        # first find origin from <path>/conf/distributions
+        distributions = os.path.join(path, 'conf', 'distributions')
+        with open(distributions, 'r') as distfile:
+            for line in distfile:
+                match = re.match(r'Origin: (.*)', line)
+                if match:
+                    origin = match.group(1)
+                    break
+        if not origin:
+            raise ICEError("Cannot find Origin in {distfile}".format(
+                           distfile=distfile))
+        cmd = [
+            'aptitude',
+            'search',
+            '?origin({origin})'.format(origin=origin),
+            '-F',
+            '%p',
+        ]
+        return run(cmd, return_stdout=True)
 
 
 class CentOS(object):
