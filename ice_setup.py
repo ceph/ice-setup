@@ -533,10 +533,11 @@ def get_distro():
 
     return module
 
+
 def append_item_or_list(list_, append):
-    if isinstance(append, list)
+    if isinstance(append, list):
         list_.extend(append)
-    else
+    else:
         list_.append(append)
 
 
