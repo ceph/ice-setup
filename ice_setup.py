@@ -756,13 +756,13 @@ def run_get_stdout(cmd, **kw):
     """like run(), except return stdout rather than logging it"""
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
 
-    stdout, stderr, returncode = run_call(cmd, kw)
-    if stderr:
-        while True:
-            err = stderr.readline()
-            if err != '':
-                logger.warning(err)
-                sys.stderr.flush()
+    logger.info('Running command: %s' % ' '.join(cmd))
+    process = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw
+    )
+    returncode = process.wait()
+    if process.stderr:
+        logger.warning(process.stderr)
 
     if returncode != 0:
         error_msg = "command returned non-zero exit status: %s" % returncode
@@ -770,8 +770,7 @@ def run_get_stdout(cmd, **kw):
             raise NonZeroExit(error_msg)
         else:
             logger.warning(error_msg)
-
-    return stdout
+    return process.stdout.read()
 
 
 def run_call(cmd, **kw):
