@@ -760,17 +760,17 @@ def run_get_stdout(cmd, **kw):
     process = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw
     )
-    returncode = process.wait()
-    if process.stderr:
-        logger.warning(process.stderr)
+    out, err = process.communicate()
+    if err:
+        logger.warning(err)
 
-    if returncode != 0:
-        error_msg = "command returned non-zero exit status: %s" % returncode
+    if process.returncode != 0:
+        error_msg = "command returned non-zero exit status: %s" % process.returncode
         if stop_on_nonzero:
             raise NonZeroExit(error_msg)
         else:
             logger.warning(error_msg)
-    return process.stdout.read()
+    return out
 
 
 def run_call(cmd, **kw):
