@@ -755,8 +755,10 @@ def run(cmd, **kw):
 def run_get_stdout(cmd, **kw):
     """like run(), except return stdout rather than logging it"""
     stop_on_nonzero = kw.pop('stop_on_nonzero', True)
+    quiet = kw.pop('quiet', False)
 
-    logger.info('Running command: %s' % ' '.join(cmd))
+    if not quiet:
+        logger.info('Running command: %s' % ' '.join(cmd))
     process = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw
     )
