@@ -675,26 +675,18 @@ class Apt(object):
     @classmethod
     def enumerate_repo(cls, path):
         """find pkgs in path and return their package names"""
-        # first find origin from <path>/conf/distributions
-        distributions = os.path.join(path, 'conf', 'distributions')
-        with open(distributions, 'r') as distfile:
-            for line in distfile:
-                match = re.match(r'Origin: (.*)', line)
-                if match:
-                    origin = match.group(1)
-                    break
-        if not origin:
-            raise ICEError("Cannot find Origin in {distfile}".format(
-                           distfile=distfile))
-        cmd = [
-            'aptitude',
-            'search',
-            '?origin({origin})'.format(origin=origin),
-            '-F',
-            '%p',
-        ]
-        return run_get_stdout(cmd)
-
+        # make list of debs
+        deblist = list()
+        for dirpath, dirnames, filenames in os.walk(path):
+            deblist += [os.path.join(dirpath, name) for name in filenames
+                        if name.endswith('deb')]
+        # we could just chop at the first '_', but this is
+        # arguably safer
+        pkglist = list()
+        for deb in deblist:
+            cmd = ['dpkg-deb', '-f', deb, 'Package',]
+            pkglist.append(run_get_stdout(cmd, quiet=True).rstrip())
+        return ' '.join(pkglist)
 
 class CentOS(object):
     pkg_manager = Yum()
