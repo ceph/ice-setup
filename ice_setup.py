@@ -28,7 +28,6 @@
 import logging
 import os
 import platform
-import re
 import shutil
 import socket
 import subprocess
