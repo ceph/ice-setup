@@ -412,6 +412,7 @@ baseurl={repo_url}
 enabled=1
 gpgcheck=1
 type=rpm-md
+priority=1
 gpgkey={gpg_url}
 """
 
@@ -422,6 +423,7 @@ baseurl={repo_url}
 enabled=1
 gpgcheck=1
 type=rpm-md
+priority=1
 gpgkey={gpg_url}
 """
 
@@ -431,6 +433,7 @@ name=Ceph
 baseurl={repo_url}
 gpgkey={gpg_url}
 default=true
+priority=1
 proxy=_none_
 """
 
@@ -460,6 +463,7 @@ name=Calamari
 baseurl={minion_url}
 gpgkey={minion_gpg_url}
 enabled=1
+priority=1
 proxy=_none_
 
 [ceph]
@@ -467,6 +471,7 @@ name=Ceph
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
 default=true
+priority=1
 proxy=_none_
 """
 
