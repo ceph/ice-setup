@@ -1397,12 +1397,69 @@ def interactive_help(mode='interactive mode'):
     prompt_continue()
 
 
+class UpdateRepo(object):
+
+    _help = dedent("""
+    Connects to updated repositories and fetch updates to packages for the
+    local repos.
+
+    Commands:
+
+      all         Updates all repositories configured for this host
+                  (ceph, ceph-deploy, and calamari)
+
+    Optional Arguments:
+
+      ceph        Update the ceph repo
+      ceph-deploy Update the ceph-deploy repo
+      calamari    Update the calamari repo
+
+    Examples:
+
+    Update all of the repos available:
+
+      sudo python ice_setup.py update all
+
+    Update the calamari and ceph repos:
+
+      sudo python ice_setup.py update ceph-deploy calamari
+
+    Update just the ceph-deploy repository:
+
+      sudo python ice_setup.py update ceph-deploy
+    """)
+
+    def __init__(self, argv):
+        self.argv = argv
+        self.optional_arguments = ['ceph', 'ceph-deploy', 'calamari']
+
+    def parse_args(self):
+        options = ['all']
+        parser = Transport(self.argv, options=options)
+        parser.catch_help = self._help
+        parser.parse_args()
+
+        #sudo_check()
+
+        if parser.has('all'):
+            update_repo(self.optional_arguments)
+        else:
+            if parser.arguments:
+                update_repo(
+                        [i for i in parser.arguments if i in self.optional_arguments]
+                )
+
+
+def update_repo(repos):
+    pass
+
 # =============================================================================
 # Main
 # =============================================================================
 
 command_map = {
     'configure': Configure,
+    'update': UpdateRepo,
 }
 
 
@@ -1413,6 +1470,7 @@ def ice_help():
     Subcommands:
 
       configure         Configuration of the ICE node
+      update            Update local repositories from hosted repos.
     """
     return '%s\n%s\n%s\n%s' % (
         help_header,
