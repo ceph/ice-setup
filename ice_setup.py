@@ -439,6 +439,17 @@ priority=1
 gpgkey={gpg_url}
 """
 
+calamari_online_yum_template = """
+[calamari_online]
+name=calamari_online packages for $basearch
+baseurl={repo_url}
+enabled=1
+gpgcheck=1
+type=rpm-md
+priority=1
+gpgkey={gpg_url}
+"""
+
 ceph_yum_template = """
 [ceph]
 name=Ceph
