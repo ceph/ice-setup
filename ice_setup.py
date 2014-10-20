@@ -417,11 +417,11 @@ priority=1
 gpgkey={gpg_url}
 """
 
-ceph_deploy_online_yum_template = """
-[ceph_deploy_online]
-name=ceph_deploy_online packages for $basearch
+ceph_deploy_updates_yum_template = """
+[ceph_deploy_updates]
+name=ceph_deploy_updates packages for $basearch
 baseurl={repo_url}
-enabled=1
+enabled=0
 gpgcheck=1
 type=rpm-md
 priority=1
@@ -439,11 +439,11 @@ priority=1
 gpgkey={gpg_url}
 """
 
-calamari_online_yum_template = """
-[calamari_online]
-name=calamari_online packages for $basearch
+calamari_updates_yum_template = """
+[calamari_updates]
+name=calamari_updates packages for $basearch
 baseurl={repo_url}
-enabled=1
+enabled=0
 gpgcheck=1
 type=rpm-md
 priority=1
@@ -460,12 +460,13 @@ priority=1
 proxy=_none_
 """
 
-ceph_online_yum_template = """
-[ceph_online]
-name=Ceph_online packages
+ceph_updates_yum_template = """
+[ceph_updates]
+name=Ceph_updates packages
 baseurl={repo_url}
 gpgkey={gpg_url}
 default=true
+enabled=0
 priority=1
 proxy=_none_
 """
@@ -515,9 +516,9 @@ yum_templates = {
     'calamari-server': calamari_yum_template,
     'ceph-deploy': ceph_deploy_yum_template,
     'ceph': ceph_yum_template,
-    'calamari-server-online': calamari_online_yum_template,
-    'ceph-deploy-online': ceph_deploy_online_yum_template,
-    'ceph-online': ceph_online_yum_template,
+    'calamari-server-updates': calamari_updates_yum_template,
+    'ceph-deploy-updates': ceph_deploy_updates_yum_template,
+    'ceph-updates': ceph_updates_yum_template,
 
 }
 
@@ -641,24 +642,25 @@ class Yum(object):
     def sync(cls, repos):
         # resolve needed dependencies
         if not which('syncrepo'):
-            self.install('yum-utils')
+            cls.install('yum-utils')
         if not which('createrepo'):
-            self.install('createrepo')
+            cls.install('createrepo')
 
         # infer the path to the ceph repo by looking at cephdeploy.conf because
         # we never overwrite ceph, rather, we rely on versions so the path for
         # ceph can have multiple versions already, like ``static/ceph/0.80``
         # and ``static/ceph/0.86``
         destinations = {
-            'ceph' : infer_ceph_repo(),
+            'ceph': infer_ceph_repo(),
             'ceph-deploy': '/opt/ICE/ceph-deploy',
             'calamari': '/opt/ICE/calamari-server',
         }
 
         repo_ids = {
-            'ceph-deploy': 'ceph_deploy_online',
-            'ceph': 'ceph_online',
-            'calamari': 'calamari_online',
+            'ceph-deploy': 'ceph_deploy_updates',
+            'ceph': 'ceph_updates',
+            'calamari': 'calamari_updates',
+        }
 
         for repo in repos:
             destination = destinations[repo]
@@ -674,8 +676,8 @@ class Yum(object):
                 ]
             )
 
-
-
+            run(['createrepo', destination ])
+            run(['yum', 'clean', 'all'])
 
     @classmethod
     def enumerate_repo(cls, path):
@@ -1112,7 +1114,7 @@ def infer_ceph_repo():
     parser.read(config)
 
     try:
-        http_path = parser.get(section, key)
+        http_path = parser.get('ceph', 'baseurl')
     except (NoSectionError, NoOptionError):
         msg = 'could not find a ``ceph`` repo section at %s' % config
         raise ICEError(msg)
@@ -1445,6 +1447,10 @@ def default():
     logger.info('')
     configure_local('calamari-server')
     configure_local('ceph-deploy')
+    # configure the updates repos:
+    configure_local('calamari-server-updates', repo_only=True)
+    configure_local('ceph-deploy-updates', repo_only=True)
+
 
     # step two, there's so much we can do
     # install calamari
