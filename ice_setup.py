@@ -515,6 +515,10 @@ yum_templates = {
     'calamari-server': calamari_yum_template,
     'ceph-deploy': ceph_deploy_yum_template,
     'ceph': ceph_yum_template,
+    'calamari-server-online': calamari_online_yum_template,
+    'ceph-deploy-online': ceph_deploy_online_yum_template,
+    'ceph-online': ceph_online_yum_template,
+
 }
 
 apt_templates = {
