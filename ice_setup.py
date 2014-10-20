@@ -1352,7 +1352,7 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
             rc_file.write(contents)
 
 
-def configure_local(name, repo_path=None):
+def configure_local(name, repo_path=None, repo_only=False):
     """
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
@@ -1375,13 +1375,14 @@ def configure_local(name, repo_path=None):
     )
 
     # overwrite the repo with the new packages
-    overwrite_dir(
-        repo_path,
-        destination=os.path.join(
-            repo_dest_prefix,
-            name,
+    if not repo_only:
+        overwrite_dir(
+            repo_path,
+            destination=os.path.join(
+                repo_dest_prefix,
+                name,
+            )
         )
-    )
 
     distro = get_distro()
     distro.pkg_manager.create_repo_file(
@@ -1398,7 +1399,7 @@ def configure_local(name, repo_path=None):
 
     # call update on the package manager
     distro.pkg_manager.update()
-    logger.info('this host now has a local repository for ceph-deploy, and Calamari')
+    logger.info('this host now has a local repository for %s' % name)
     logger.info('you can install those packages with your package manager')
 
 
