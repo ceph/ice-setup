@@ -460,6 +460,16 @@ priority=1
 proxy=_none_
 """
 
+ceph_online_yum_template = """
+[ceph_online]
+name=Ceph_online packages
+baseurl={repo_url}
+gpgkey={gpg_url}
+default=true
+priority=1
+proxy=_none_
+"""
+
 ceph_apt_template = """deb {repo_url} {codename} main\n"""
 
 calamari_apt_template = """deb {repo_url} {codename} main\n"""
