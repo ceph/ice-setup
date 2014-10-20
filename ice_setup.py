@@ -417,6 +417,17 @@ priority=1
 gpgkey={gpg_url}
 """
 
+ceph_deploy_online_yum_template = """
+[ceph_deploy_online]
+name=ceph_deploy_online packages for $basearch
+baseurl={repo_url}
+enabled=1
+gpgcheck=1
+type=rpm-md
+priority=1
+gpgkey={gpg_url}
+"""
+
 calamari_yum_template = """
 [calamari]
 name=calamari packages for $basearch
@@ -1556,7 +1567,7 @@ class UpdateRepo(object):
         parser.catch_help = self._help
         parser.parse_args()
 
-        #sudo_check()
+        sudo_check()
 
         if parser.has('all'):
             update_repo(self.optional_arguments)
