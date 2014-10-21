@@ -1563,8 +1563,7 @@ def default():
     # configure the updates repos:
     configure_updates('calamari-server-updates')
     configure_updates('ceph-deploy-updates')
-
-
+    configure_updates('ceph-updates')
 
     logger.info('Setup has completed.')
     logger.info('If installing Calamari for the first time:')
