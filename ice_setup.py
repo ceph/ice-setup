@@ -1656,10 +1656,11 @@ class UpdateRepo(object):
 
 def update_repo(repos):
     distro = get_distro()
-    if len(repos) > 1:
-        logger.debug('updating repo: %s' % repos)
-    else:
-        logger.debug('updating repos: %s' % ' '.join(repos))
+    logger.debug('updating repo%s: %s' % (
+        's' if len(repos) > 1 else '',
+        ' '.join(repos)
+        )
+    )
     distro.pkg_manager.sync(repos)
 
 # =============================================================================
