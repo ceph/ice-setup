@@ -641,7 +641,7 @@ class Yum(object):
     @classmethod
     def sync(cls, repos):
         # resolve needed dependencies
-        if not which('syncrepo'):
+        if not which('reposync'):
             cls.install('yum-utils')
         if not which('createrepo'):
             cls.install('createrepo')
@@ -1354,6 +1354,48 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
             rc_file.write(contents)
 
 
+def configure_updates(name):
+    """
+    Configure the current host so that it can pull updates for either local
+    repos or repos that it currently hosts.
+
+    :param name: The name of the repository to be configured, e.g.
+                 calamari-server-updates or ceph-deploy-updates
+    """
+    update_repo_urls = {
+        'ceph-updates': 'http://ceph.com/rpm-firefly/el6/x86_64/',
+        'ceph-deploy-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
+        # XXX this needs the right url
+        'calamari-server-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
+    }
+
+    # piggy back from the local repos
+    update_gpg_urls = {
+        'ceph-updates': 'file://%s' % os.path.join(infer_ceph_repo(), 'release.asc'),
+        'ceph-deploy-updates': 'file:///opt/ICE/ceph-deploy/release.asc',
+        'calamari-server-updates': 'file:///opt/ICE/calamari-server/release.asc',
+    }
+
+
+    distro = get_distro()
+    distro.pkg_manager.create_repo_file(
+        name,
+        update_repo_urls[name],
+        update_gpg_urls[name],
+        file_name=name,
+        codename=distro.codename,
+    )
+
+    distro.pkg_manager.import_repo(
+        update_gpg_urls[name],
+    )
+
+    # call update on the package manager
+    distro.pkg_manager.update()
+    logger.info('this host now has a local updates repository for %s' % name)
+    logger.info('you can update those packages with your package manager')
+
+
 def configure_local(name, repo_path=None, repo_only=False):
     """
     Configure the current host so that it can serve as a *local* repo server
@@ -1447,10 +1489,6 @@ def default():
     logger.info('')
     configure_local('calamari-server')
     configure_local('ceph-deploy')
-    # configure the updates repos:
-    configure_local('calamari-server-updates', repo_only=True)
-    configure_local('ceph-deploy-updates', repo_only=True)
-
 
     # step two, there's so much we can do
     # install calamari
@@ -1521,6 +1559,12 @@ def default():
         gpg_url=ceph_gpg_url,
         codename=distro.codename,
     )
+
+    # configure the updates repos:
+    configure_updates('calamari-server-updates')
+    configure_updates('ceph-deploy-updates')
+
+
 
     logger.info('Setup has completed.')
     logger.info('If installing Calamari for the first time:')
