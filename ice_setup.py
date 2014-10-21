@@ -1611,6 +1611,8 @@ class UpdateRepo(object):
       all         Updates all repositories configured for this host
                   (ceph, ceph-deploy, and calamari)
 
+      configure   Installs/updates (all) the repo files for updates
+
     Optional Arguments:
 
       ceph        Update the ceph repo
@@ -1637,7 +1639,7 @@ class UpdateRepo(object):
         self.optional_arguments = ['ceph', 'ceph-deploy', 'calamari']
 
     def parse_args(self):
-        options = ['all']
+        options = ['all', 'configure']
         parser = Transport(self.argv, options=options)
         parser.catch_help = self._help
         parser.parse_args()
@@ -1646,6 +1648,13 @@ class UpdateRepo(object):
 
         if parser.has('all'):
             update_repo(self.optional_arguments)
+
+        if parser.has('configure'):
+            # configure the updates repos:
+            configure_updates('calamari-server-updates')
+            configure_updates('ceph-deploy-updates')
+            configure_updates('ceph-updates')
+
         else:
             if parser.arguments:
                 update_repo(
