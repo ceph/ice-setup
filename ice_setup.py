@@ -1363,9 +1363,9 @@ def configure_updates(name):
                  calamari-server-updates or ceph-deploy-updates
     """
     update_repo_urls = {
+        # XXX these need the right url, stubs for now.
         'ceph-updates': 'http://ceph.com/rpm-firefly/el6/x86_64/',
         'ceph-deploy-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
-        # XXX this needs the right url
         'calamari-server-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
     }
 
@@ -1474,6 +1474,7 @@ def default():
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
         '4. Configure host as a ceph and calamari minion repository for remote hosts',
+        '5. Calamari minion repository setup',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
