@@ -1560,11 +1560,20 @@ def default():
         codename=distro.codename,
     )
 
+    # step six, the song ended, there is no six, lets try with
+    # some bricks jumping up and down like tics that cliques
+    logger.info('')
+    logger.info('\
+        {markup} \
+        Step 6: Configure the update repositories \
+        {markup}'.format(markup='===='))
+    logger.info('')
     # configure the updates repos:
     configure_updates('calamari-server-updates')
     configure_updates('ceph-deploy-updates')
     configure_updates('ceph-updates')
 
+    logger.info('')
     logger.info('Setup has completed.')
     logger.info('If installing Calamari for the first time:')
     logger.info('')
