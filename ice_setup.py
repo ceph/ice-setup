@@ -1383,13 +1383,13 @@ def configure_updates(name, username=None, password=None):
     if not username or not password:
         logger.info('You will need to provide your credentials for the update repository')
         username = prompt('Username:')
-        password = prompt_pass('Password:')
+        password = prompt_pass()
 
     update_repo_urls = {
         # XXX these need the right url, stubs for now.
-        'ceph-updates': 'http://ceph.com/rpm-firefly/el6/x86_64/',
-        'ceph-deploy-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
-        'calamari-server-updates': 'http://ceph.com/rpm-firefly/el6/noarch/',
+        'ceph-updates': 'http://{user}:{password}@ceph.com/rpm-firefly/el6/x86_64/',
+        'ceph-deploy-updates': 'http://{user}:{password}@ceph.com/rpm-firefly/el6/noarch/',
+        'calamari-server-updates': 'http://{user}:{password}@ceph.com/rpm-firefly/el6/noarch/',
     }
 
     # piggy back from the local repos
@@ -1399,11 +1399,19 @@ def configure_updates(name, username=None, password=None):
         'calamari-server-updates': 'file:///opt/ICE/calamari-server/release.asc',
     }
 
+    repo_url = update_repo_urls[name].format(
+        user=username,
+        password=password,
+    )
+
+    gpg_url = update_gpg_urls[name]
+
+
     distro = get_distro()
     distro.pkg_manager.create_repo_file(
         name,
-        update_repo_urls[name],
-        update_gpg_urls[name],
+        repo_url,
+        gpg_url,
         file_name=name,
         codename=distro.codename,
     )
@@ -1688,9 +1696,14 @@ class UpdateRepo(object):
 
         if parser.has('configure'):
             # configure the updates repos:
-            configure_updates('calamari-server-updates')
-            configure_updates('ceph-deploy-updates')
-            configure_updates('ceph-updates')
+            logger.info('You will need to provide your credentials for the update repositories')
+
+            username = prompt('Username:')
+            password = prompt_pass()
+
+            configure_updates('calamari-server-updates', username, password)
+            configure_updates('ceph-deploy-updates', username, password)
+            configure_updates('ceph-updates', username, password)
 
         else:
             if parser.arguments:
