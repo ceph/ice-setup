@@ -25,6 +25,7 @@
 # Inktank Storage, Inc.  and its affiliates disclaim any liability for any
 # damages caused by use of this software or hardware in dangerous applications.
 
+import getpass
 import logging
 import os
 import platform
@@ -1099,6 +1100,17 @@ def which(executable):
 
 
 def infer_ceph_repo(_configs=None):
+    """
+    Because ceph repositories are being handled by version and stored with the
+    version as part of the directory structure (e.g. 'ceph/0.80/') there is
+    a chance that a customer may have more than one version (if they happened
+    to do an upgrade at some point) and end up with several other directories.
+
+    This function helps determine what is the *current* version that the server
+    is using, by inspecting `cephdeploy.conf` and looking into the ``[ceph]``
+    repo section which should define the proper url, and therefore the proper
+    directory we should use.
+    """
     configs = _configs or get_ceph_deploy_conf_paths()
     config = None
     for conf in configs:
@@ -1177,6 +1189,12 @@ def prompt(question, default=None, lowercase=False, _raw_input=None):
         if lowercase:
             return response.lower()
         return response
+
+
+def prompt_pass():
+    prefix = '%s-->%s ' % (COLOR_SEQ % (30 + COLORS['INFO']), RESET_SEQ)
+    prompt_format = '{prefix}Password: '.format(prefix=prefix)
+    return getpass.getpass(prompt_format)
 
 
 def strtobool(val):
@@ -1354,7 +1372,7 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
             rc_file.write(contents)
 
 
-def configure_updates(name):
+def configure_updates(name, username=None, password=None):
     """
     Configure the current host so that it can pull updates for either local
     repos or repos that it currently hosts.
@@ -1362,6 +1380,11 @@ def configure_updates(name):
     :param name: The name of the repository to be configured, e.g.
                  calamari-server-updates or ceph-deploy-updates
     """
+    if not username or not password:
+        logger.info('You will need to provide your credentials for the update repository')
+        username = prompt('Username:')
+        password = prompt_pass('Password:')
+
     update_repo_urls = {
         # XXX these need the right url, stubs for now.
         'ceph-updates': 'http://ceph.com/rpm-firefly/el6/x86_64/',
@@ -1568,10 +1591,15 @@ def default():
         Step 6: Configure the update repositories \
         {markup}'.format(markup='===='))
     logger.info('')
+    logger.info('You will need to provide your credentials for the update repositories')
+
+    updates_username = prompt('Username:')
+    updates_password = prompt_pass('Password:')
+
     # configure the updates repos:
-    configure_updates('calamari-server-updates')
-    configure_updates('ceph-deploy-updates')
-    configure_updates('ceph-updates')
+    configure_updates('calamari-server-updates', updates_username, updates_password)
+    configure_updates('ceph-deploy-updates', updates_username, updates_password)
+    configure_updates('ceph-updates', updates_username, updates_password)
 
     logger.info('')
     logger.info('Setup has completed.')
