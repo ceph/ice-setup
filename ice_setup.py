@@ -757,6 +757,64 @@ class Apt(object):
         run(cmd)
 
     @classmethod
+    def sync(cls, repos):
+        # resolve needed dependencies
+        if not which('debmirror'):
+            cls.install('debmirror')
+
+        # infer the path to the ceph repo by looking at cephdeploy.conf because
+        # we never overwrite ceph, rather, we rely on versions so the path for
+        # ceph can have multiple versions already, like ``static/ceph/0.80``
+        # and ``static/ceph/0.86``
+        ceph_repo_path = infer_ceph_repo()
+        destinations = {
+            'ceph': ceph_repo_path,
+            'ceph-deploy': '/opt/ICE/ceph-deploy',
+            'calamari': '/opt/ICE/calamari-server',
+        }
+
+        # piggy back from the local repos
+        gpg_locations = {
+            'ceph': 'file://%s' % os.path.join(ceph_repo_path, 'release.asc'),
+            'ceph-deploy': 'file:///opt/ICE/ceph-deploy/release.asc',
+            'calamari-server': 'file:///opt/ICE/calamari-server/release.asc',
+        }
+
+        distro = get_distro()
+
+        for repo in repos:
+            gpg_location = gpg_locations[repo]
+            destination = destinations[repo]
+
+            # ensure the GPG key is imported
+            run(
+                [
+                    'gpg ',
+                    '--no-default-keyring ',
+                    '--keyring',
+                    'trustedkeys.gpg',
+                    '--import',
+                    gpg_location,
+                ]
+            )
+
+            run(
+                [
+                   'debmirror',
+                   '-a', 'amd64',
+                   '--no-source',
+                   '-s', 'main ',
+                   '-h', 'ceph.com', # XXX stub
+                   '-d', distro.codename,
+                   '-r', 'debian-firefly',  # XXX stub
+                   '--method', 'http',
+                   '--progress',
+                   destination,
+                ]
+            )
+
+
+    @classmethod
     def enumerate_repo(cls, path):
         """find pkgs in path and return their package names"""
         # make list of debs
