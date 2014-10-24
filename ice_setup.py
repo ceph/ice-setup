@@ -775,9 +775,9 @@ class Apt(object):
 
         # piggy back from the local repos
         gpg_locations = {
-            'ceph': 'file://%s' % os.path.join(ceph_repo_path, 'release.asc'),
-            'ceph-deploy': 'file:///opt/ICE/ceph-deploy/release.asc',
-            'calamari-server': 'file:///opt/ICE/calamari-server/release.asc',
+            'ceph': '%s' % os.path.join(ceph_repo_path, 'release.asc'),
+            'ceph-deploy': '/opt/ICE/ceph-deploy/release.asc',
+            'calamari-server': '/opt/ICE/calamari-server/release.asc',
         }
 
         distro = get_distro()
