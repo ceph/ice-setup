@@ -789,8 +789,8 @@ class Apt(object):
             # ensure the GPG key is imported
             run(
                 [
-                    'gpg ',
-                    '--no-default-keyring ',
+                    'gpg',
+                    '--no-default-keyring',
                     '--keyring',
                     'trustedkeys.gpg',
                     '--import',
@@ -866,7 +866,7 @@ def run(cmd, **kw):
             if err == '' and process.poll() is not None:
                 break
             if err != '':
-                logger.warning(err)
+                logger.warning(err.strip('\n'))
                 sys.stderr.flush()
     if process.stdout:
         while True:
@@ -898,7 +898,7 @@ def run_get_stdout(cmd, **kw):
     )
     out, err = process.communicate()
     if err:
-        logger.warning(err)
+        logger.warning(err.strip('\n'))
 
     if process.returncode != 0:
         error_msg = "command returned non-zero exit status: %s" % process.returncode
