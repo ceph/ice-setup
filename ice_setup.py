@@ -801,9 +801,10 @@ class Apt(object):
             run(
                 [
                    'debmirror',
+                   '--verbose',
                    '-a', 'amd64',
                    '--no-source',
-                   '-s', 'main ',
+                   '-s', 'main',
                    '-h', 'ceph.com', # XXX stub
                    '-d', distro.codename,
                    '-r', 'debian-firefly',  # XXX stub
