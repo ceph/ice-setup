@@ -809,6 +809,7 @@ class Apt(object):
                    '-d', distro.codename,
                    '-r', 'debian-firefly',  # XXX stub
                    '--method', 'http',
+                   '--ignore', 'release.asc', # do not delete release.asc files
                    '--progress',
                    destination,
                 ]
