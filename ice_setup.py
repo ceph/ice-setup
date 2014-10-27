@@ -1653,21 +1653,23 @@ def default():
 
     # step six, the song ended, there is no six, lets try with
     # some bricks jumping up and down like tics that cliques
-    logger.info('')
-    logger.info('\
-        {markup} \
-        Step 6: Configure the update repositories \
-        {markup}'.format(markup='===='))
-    logger.info('')
-    logger.info('You will need to provide your credentials for the update repositories')
+    if distro.name not in ['ubuntu', 'debian']:
+        # only those distros don't require to have repo files created
+        logger.info('')
+        logger.info('\
+            {markup} \
+            Step 6: Configure the update repositories \
+            {markup}'.format(markup='===='))
+        logger.info('')
+        logger.info('You will need to provide your credentials for the update repositories')
 
-    updates_username = prompt('Username:')
-    updates_password = prompt_pass('Password:')
+        updates_username = prompt('Username:')
+        updates_password = prompt_pass('Password:')
 
-    # configure the updates repos:
-    configure_updates('calamari-server-updates', updates_username, updates_password)
-    configure_updates('ceph-deploy-updates', updates_username, updates_password)
-    configure_updates('ceph-updates', updates_username, updates_password)
+        # configure the updates repos:
+        configure_updates('calamari-server-updates', updates_username, updates_password)
+        configure_updates('ceph-deploy-updates', updates_username, updates_password)
+        configure_updates('ceph-updates', updates_username, updates_password)
 
     logger.info('')
     logger.info('Setup has completed.')
