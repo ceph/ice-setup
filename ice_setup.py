@@ -1672,7 +1672,7 @@ class UpdateRepo(object):
 
     Update the calamari and ceph repos:
 
-      sudo python ice_setup.py update ceph-deploy calamari
+      sudo python ice_setup.py update ceph calamari
 
     Update just the ceph-deploy repository:
 
