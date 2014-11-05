@@ -1602,7 +1602,7 @@ def default():
     logger.info('You will need to provide your credentials for the update repositories')
 
     updates_username = prompt('Username:')
-    updates_password = prompt_pass('Password:')
+    updates_password = prompt_pass()
 
     # configure the updates repos:
     configure_updates('calamari-server-updates', updates_username, updates_password)
