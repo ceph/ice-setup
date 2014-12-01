@@ -2,7 +2,7 @@ import os
 import pytest
 import shutil
 import tempfile
-from ice_setup import Yum, Apt
+from rhc_setup import Yum, Apt
 
 
 @pytest.fixture

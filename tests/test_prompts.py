@@ -1,5 +1,5 @@
 import pytest
-from ice_setup import strtobool, prompt, prompt_bool
+from rhc_setup import strtobool, prompt, prompt_bool
 
 
 def true_responses(upper_casing=False):
