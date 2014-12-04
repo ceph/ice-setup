@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2013, Inktank Storage, Inc.
+# Copyright 2013, Red Hat, Inc.
 # All rights reserved.
 #
 # This software and related documentation are provided under a license
@@ -22,7 +22,7 @@
 # create a risk of personal injury.  If you use this software or hardware in
 # dangerous applications, then you shall be responsible to take all appropriate
 # fail-safe, backup, redundancy, and other measures to ensure its safe use.
-# Inktank Storage, Inc.  and its affiliates disclaim any liability for any
+# Red Hat, Inc., and its affiliates disclaim any liability for any
 # damages caused by use of this software or hardware in dangerous applications.
 
 import logging
