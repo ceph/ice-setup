@@ -44,14 +44,14 @@ __version__ = '0.0.1'
 
 help_header = """
 
-8888888      .d8888b.      8888888888
-  888       d88P  Y88b     888
-  888       888    888     888
-  888       888            8888888
-  888       888            888
-  888       888    888     888
-  888   d8b Y88b  d88P d8b 888        d8b
-8888888 Y8P  "Y8888P"  Y8P 8888888888 Y8P
+8888888b.      888    888      .d8888b.
+888   Y88b     888    888     d88P  Y88b
+888    888     888    888     888    888
+888   d88P     8888888888     888
+8888888P"      888    888     888
+888 T88b       888    888     888    888
+888  T88b  d8b 888    888 d8b Y88b  d88P d8b
+888   T88b Y8P 888    888 Y8P  "Y8888P"  Y8P
 
 """
 
@@ -445,7 +445,7 @@ ceph_deploy_apt_template = """deb {repo_url} {codename} main\n"""
 
 
 ceph_deploy_rc = """
-# This file was automatically generated after ice_setup.py was run. It provides
+# This file was automatically generated after rhc_setup.py was run. It provides
 # the repository url and GPG information so that ceph-deploy can install the
 # repositories in remote hosts.
 #
@@ -1054,7 +1054,7 @@ def strtobool(val):
 class Configure(object):
 
     _help = dedent("""
-    Configures the ICE node as a repository Host. Defaults to fetch a tar.gz
+    Configures the RHC node as a repository Host. Defaults to fetch a tar.gz
     from ceph.com that will have all the packages needed to create a
     repository.
 
@@ -1266,16 +1266,16 @@ def install_ceph_deploy(distro=None):
 
 def default():
     """
-    This action is the default entry point for a generic ICE setup. It goes
+    This action is the default entry point for a generic RHC setup. It goes
     through all the common questions and prompts for a user and initiates the
     configuration and setup. It does not offer granular support for given
     actions, e.g. "just install Calamari".
     """
     interactive_help()
     configure_steps = [
-        '1. Configure the ICE Node (current host) as a repository Host',
-        '2. Install Calamari web application on the ICE Node (current host)',
-        '3. Install ceph-deploy on the ICE Node (current host)',
+        '1. Configure the RHC Node (current host) as a repository Host',
+        '2. Install Calamari web application on the RHC Node (current host)',
+        '3. Install ceph-deploy on the RHC Node (current host)',
         '4. Configure host as a ceph and calamari minion repository for remote hosts',
     ]
 
@@ -1412,11 +1412,11 @@ def ice_help():
 
     Subcommands:
 
-      configure         Configuration of the ICE node
+      configure         Configuration of the RHC node
     """
     return '%s\n%s\n%s\n%s' % (
         help_header,
-        '  Inktank Ceph Enterprise Setup',
+        '  Red Hat Ceph Setup',
         version,
         dedent(commands),
     )
