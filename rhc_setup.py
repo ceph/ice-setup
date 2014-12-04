@@ -285,21 +285,21 @@ class Transport(Parse):
 # Exceptions
 # =============================================================================
 
-class ICEError(Exception):
-    """Base ICE Setup exception"""
+class RHCError(Exception):
+    """Base RHC Setup exception"""
     pass
 
 
-class NonZeroExit(ICEError):
+class NonZeroExit(RHCError):
     """subprocess commands that exit with non-zero status"""
     pass
 
 
-class UnsupportedPlatform(ICEError):
+class UnsupportedPlatform(RHCError):
     pass
 
 
-class FileNotFound(ICEError):
+class FileNotFound(RHCError):
     """
     Provide meaningful information when a given file is not found in the
     filesystem
@@ -1429,10 +1429,10 @@ def sudo_check():
     """
     if os.getuid() != 0:
         msg = 'This script needs to be executed with sudo'
-        raise ICEError(msg)
+        raise RHCError(msg)
 
 
-@catches(ICEError)
+@catches(RHCError)
 def main(argv=None):
     options = [['-v', '--verbose']]
     argv = argv or sys.argv
