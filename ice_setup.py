@@ -1648,8 +1648,7 @@ def interactive_help(mode='interactive mode'):
 class UpdateRepo(object):
 
     _help = dedent("""
-    Connects to updated repositories and fetch updates to packages for the
-    local repos.
+    Updates local repositories by synchronizing with remote update repositories.
 
     Commands:
 
@@ -1677,6 +1676,10 @@ class UpdateRepo(object):
     Update just the ceph-deploy repository:
 
       sudo python ice_setup.py update ceph-deploy
+
+    Configure the repositories for async updates:
+
+      sudo python ice_setup.py update configure
     """)
 
     def __init__(self, argv):
