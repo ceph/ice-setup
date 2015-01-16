@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ICE setup',
+    name='ice_setup',
     author='Inktank',
     version='0.0.1',
     packages=find_packages(),
