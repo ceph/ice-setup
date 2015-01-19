@@ -35,7 +35,7 @@ import urlparse
 from functools import wraps
 from textwrap import dedent
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 
 help_header = """
 
