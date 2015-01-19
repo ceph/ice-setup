@@ -8,4 +8,9 @@ setup(
     version=__version__,
     packages=find_packages(),
     zip_safe=False,
+    entry_points={
+        'console_scripts': [
+            'ice_setup = ice_setup.ice:main',
+        ],
+    },
 )

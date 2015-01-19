@@ -1429,7 +1429,7 @@ def sudo_check():
 
 
 @catches(ICEError)
-def main(argv=None):
+def _main(argv=None):
     options = [['-v', '--verbose']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
@@ -1460,11 +1460,15 @@ def main(argv=None):
         default()
 
 
-if __name__ == '__main__':
+def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
     # is no other way around it if not caught explicitly as opposed to using
     # the `@catches` decorator. See: http://bugs.python.org/issue1687125
     try:
-        main()
+        _main()
     except KeyboardInterrupt:
         raise SystemExit('')
+
+
+if __name__ == '__main__':
+    main()
