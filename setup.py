@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from ice_setup import __version__
+from ice_setup.ice_setup import __version__
 
 setup(
     name='ice_setup',
