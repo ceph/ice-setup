@@ -1,4 +1,4 @@
-from ice_setup.ice_setup import get_fqdn
+from ice_setup.ice import get_fqdn
 
 
 class FakeSocket(object):
