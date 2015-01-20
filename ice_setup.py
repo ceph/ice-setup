@@ -1,29 +1,24 @@
 #!/usr/bin/env python
 
-# Copyright 2013, Inktank Storage, Inc.
-# All rights reserved.
+# Copyright (c) 2015 Red Hat, Inc.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# This software and related documentation are provided under a license
-# agreement containing restrictions on use and disclosure and are protected by
-# intellectual property laws.  Except as expressly permitted in your license
-# agreement or allowed by law, you may not use, copy, reproduce, translate,
-# broadcast, modify, license, transmit, distribute, exhibit, perform, publish,
-# or display any part, in any form, or by any means.  Reverse engineering,
-# disassembly, or decompilation of this software, unless required by law for
-# interoperability, is prohibited.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
-# The information contained herein is subject to change without notice and is
-# not warranted to be error-free.  If you find any errors, please report them
-# to us in writing.
-#
-# This software or hardware is developed for general use in a variety of
-# information management applications.  It is not developed or intended for use
-# in any inherently dangerous applications, including applications which may
-# create a risk of personal injury.  If you use this software or hardware in
-# dangerous applications, then you shall be responsible to take all appropriate
-# fail-safe, backup, redundancy, and other measures to ensure its safe use.
-# Inktank Storage, Inc.  and its affiliates disclaim any liability for any
-# damages caused by use of this software or hardware in dangerous applications.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
 import logging
 import os
