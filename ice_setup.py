@@ -987,8 +987,8 @@ def prompt_bool(question, _raw_input=None):
     try:
         return strtobool(response)
     except ValueError:
-        logger.error('Valid true responses are: y, Y, 1, Enter')
-        logger.error('Valid false responses are: n, N, 0')
+        logger.error('Valid true responses are: y, yes, <Enter>')
+        logger.error('Valid false responses are: n, no')
         logger.error('That response was invalid, please try again')
         return prompt_bool(question, _raw_input=input_prompt)
 
@@ -1026,24 +1026,25 @@ def prompt(question, default=None, lowercase=False, _raw_input=None):
 
 def strtobool(val):
     """
-    Convert a string representation of truth to true (1) or false (0).
+    Convert a string representation of truth to True or False
 
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values are
-    'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if 'val' is
-    anything else.
-
-    .. note:: lifted from distutils.utils.strtobool
+    True values are 'y', 'yes', or ''; case-insensitive
+    False values are 'n', or 'no'; case-insensitive
+    Raises ValueError if 'val' is anything else.
     """
+    true_vals = ['yes', 'y', '']
+    false_vals = ['no', 'n']
     try:
         val = val.lower()
     except AttributeError:
         val = str(val).lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1', '', None):
-        return 1
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-        return 0
+    if val in true_vals:
+        return True
+    elif val in false_vals:
+        return False
     else:
-        raise ValueError("invalid input value: %r" % (val,))
+        raise ValueError("Invalid input value: %s" % val)
+
 
 
 # =============================================================================
