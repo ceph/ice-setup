@@ -955,12 +955,14 @@ def get_package_source(package_path, package_name, traverse=False):
     Constructs the source location of the package files, verifying that the
     resulting path exists.
 
-    :param package_path: Directory that should contain package_name
+    :param package_path: Directory that should contain package_name. If None, uses
+                         current working directory
     :param package_name: Name of directory containing package files (e.g. 'ceph',
                          'calamari-server')
     :param traverse: traverse one level in and use the first directory. # XXX magic
                      for use with versioned reposistories (e.g. 'ceph/0.80')
     """
+    package_path = package_path or CWD
     pkg_path = os.path.join(package_path, package_name)
     if traverse:
         for root, dirs, files in os.walk(pkg_path):
@@ -1055,16 +1057,20 @@ def strtobool(val):
 class Configure(object):
 
     _help = dedent("""
-    Configures the ICE node as a repository Host. Defaults to fetch a tar.gz
-    from ceph.com that will have all the packages needed to create a
-    repository.
+    Configures the ICE node as a repository Host.
 
     Commands:
 
-      all         Both local and remote repo
-      local       Local repo only, to install Calamari and/or ceph-deploy
-      remote      Remote repo only, to be used for all remote node package
-                  managers
+      all         Configure both local and remote repos
+      local       Configure repos necessary to install calamari and ceph-deploy
+                  on this local host
+      remote      Configure repos necessary to install ceph and calamari-minions
+                  on remote hosts
+
+    Details:
+      Each of the commands can optionally be followed by a path to the package
+      files. If no path is given, the current working directory is searched for
+      packages.
     """)
 
     def __init__(self, argv):
@@ -1079,17 +1085,21 @@ class Configure(object):
         sudo_check()
 
         if parser.has('all'):
-            repo_path = parser.get('all')
-            configure_local(repo_path=repo_path)
-            configure_remotes(repo_path=repo_path)
+            package_path = parser.get('all')
+            configure_local('calamari-server', package_path)
+            configure_local('ceph-deploy', package_path)
+            configure_remote('ceph', package_path, versioned=True)
+            configure_remote('calamari-minions', package_path)
 
         elif parser.has('local'):
-            repo_path = parser.get('local')
-            configure_local(repo_path=repo_path)
+            package_path = parser.get('local')
+            configure_local('calamari-server', package_path)
+            configure_local('ceph-deploy', package_path)
 
         elif parser.has('remote'):
-            repo_path = parser.get('remote')
-            configure_remotes(repo_path=repo_path)
+            package_path = parser.get('remote')
+            configure_remote('ceph', package_path, versioned=True)
+            configure_remote('calamari-minions', package_path)
 
 
 def fqdn_with_protocol():
