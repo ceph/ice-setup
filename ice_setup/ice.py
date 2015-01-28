@@ -73,6 +73,8 @@ BOLD_SEQ = "\033[1m"
 BASE_COLOR_FORMAT = "%(color_levelname)s %(message)s"
 VERBOSE_COLOR_FORMAT = "[%(name)s][$BOLD%(levelname)s] $RESET%(color_levelname)s %(message)s"
 
+CWD = os.getcwd()
+
 
 def color_message(message):
     message = message.replace("$RESET", RESET_SEQ).replace("$BOLD", BOLD_SEQ)
@@ -948,25 +950,28 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     logger.debug('copied contents from: %s to %s' % (source, destination))
 
 
-def get_repo_path(repo_dir_name=None, traverse=False):
+def get_package_source(package_path, package_name, traverse=False):
     """
-    Calculates the repository location of the repository files, for example if
-    this script runs alongside the sources it would get the absolute path for
-    the ``ceph-repo`` or ``local-repo`` directories relative to this script.
+    Constructs the source location of the package files, verifying that the
+    resulting path exists.
+
+    :param package_path: Directory that should contain package_name
+    :param package_name: Name of directory containing package files (e.g. 'ceph',
+                         'calamari-server')
+    :param traverse: traverse one level in and use the first directory. # XXX magic
+                     for use with versioned reposistories (e.g. 'ceph/0.80')
     """
-    repo_dir_name = repo_dir_name or 'ceph-repo'
-    current_dir = os.path.abspath(os.path.dirname(__file__))
-    repo_path = os.path.join(current_dir, repo_dir_name)
+    pkg_path = os.path.join(package_path, package_name)
     if traverse:
-        for root, dirs, files in os.walk(repo_path):
+        for root, dirs, files in os.walk(pkg_path):
             # be blatant here so we break if the dir is not there
-            repo_path = os.path.join(repo_path, dirs[0])
+            pkg_path = os.path.join(pkg_path, dirs[0])
             break
 
-    if not os.path.exists(repo_path):
-        raise FileNotFound(repo_path)
-    logger.debug('detected repository path: %s', repo_path)
-    return repo_path
+    if not os.path.exists(pkg_path):
+        raise FileNotFound(pkg_path)
+    logger.debug('detected packages path: %s', pkg_path)
+    return pkg_path
 
 
 # =============================================================================
@@ -1113,9 +1118,21 @@ def fqdn_with_protocol():
     return protocol, fqdn
 
 
-def configure_remotes(
-        repo_name,
-        repo_path=None,
+def get_package_path(package_path):
+    """
+    Prompt the user for the path to the packages to be place in
+    locally hosted repos.
+    """
+    package_path = prompt(
+        'provide the path to packages to place in the repo',
+        default=package_path
+    )
+    return package_path
+
+
+def configure_remote(
+        name,
+        package_path,
         destination_name=None,
         versioned=False):
     """
@@ -1125,36 +1142,34 @@ def configure_remotes(
 
     :returns destination_name
 
-    :param repo_name: the name of the repository, that will be used as the
-    destination dir.
+    :param name: the name of the folder containing the packages, which will be
+    used to populate a repository of the same name at the destination dir
 
-    :param repo_path: optionally specify the actual repository path to be moved
+    :param package_path: The path where the packages are found. This path should
+    contain ``name``.
 
-    :param destination_name: defaults to ``repo_name``, used to use a new
+    :param destination_name: defaults to ``name``, used to use a new
     destination name, e.g. 'ceph0.80' to help with versioning.
 
-    :param versioned: if the repository is versioned (e.g. 'ceph-repo/0.80')
+    :param versioned: if the repository is versioned (e.g. 'ceph/0.80')
     then traverse one level in and use the first directory # XXX magic
     """
-    destination_name = destination_name or repo_name
+    destination_name = destination_name or name
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
-    if not repo_path:  # fallback to our location
-        # if we need to look for a versioned directory, tell get_repo_path to
-        # traverse.
-        repo_path = get_repo_path(repo_name, traverse=versioned)
+    package_source = get_package_source(package_path, name, traverse=versioned)
 
     if versioned:
         # this means that we need to also grab the end part of the
-        # repo_path, as that represents the version that should also
+        # package_path, as that represents the version that should also
         # get used for the destination to avoid overwriting repos
         destination_name = os.path.join(
-            destination_name, os.path.basename(repo_path)
+            destination_name, os.path.basename(package_path)
         )
 
     # overwrite the repo with the new packages
     overwrite_dir(
-        repo_path,
+        package_path,
         destination=os.path.join(
             repo_dest_prefix,
             destination_name,
@@ -1174,7 +1189,7 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
     # ensure we write the config file in all these places because the $HOME
     # location might not be what the user expected to be
     configs = [
-        os.path.join(os.getcwd(), 'cephdeploy.conf'),
+        os.path.join(CWD, 'cephdeploy.conf'),
         os.path.expanduser(u'~/.cephdeploy.conf'),
     ]
     sudoer_user = os.environ.get('SUDO_USER')
@@ -1195,19 +1210,20 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
             rc_file.write(contents)
 
 
-def configure_local(name, repo_path=None):
+def configure_local(name, package_path):
     """
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
 
     :param name: The name of the repository to be configured, e.g. calamari-server
                  or ceph-deploy
+    :param package_path: Base directory that should be searched for 'name' and
+                         should contain the packages to add to the repo
     """
     repo_dest_prefix = '/opt/ICE'
     repo_dest_dir = os.path.join(repo_dest_prefix, name)
 
-    if not repo_path:  # fallback to our location
-        repo_path = get_repo_path(repo_dir_name=name)
+    package_source = get_package_source(package_path, name)
 
     gpg_path = os.path.join(repo_dest_dir, 'release.asc')
     gpg_url_path = 'file://%s' % gpg_path
@@ -1219,7 +1235,7 @@ def configure_local(name, repo_path=None):
 
     # overwrite the repo with the new packages
     overwrite_dir(
-        repo_path,
+        package_source,
         destination=os.path.join(
             repo_dest_prefix,
             name,
@@ -1241,7 +1257,7 @@ def configure_local(name, repo_path=None):
 
     # call update on the package manager
     distro.pkg_manager.update()
-    logger.info('this host now has a local repository for ceph-deploy, and Calamari')
+    logger.info('this host now has a local repository for %s' % name)
     logger.info('you can install those packages with your package manager')
 
 
@@ -1260,7 +1276,7 @@ def install_ceph_deploy(distro=None):
     distro.pkg_manager.install('ceph-deploy')
 
 
-def default():
+def default(package_path):
     """
     This action is the default entry point for a generic ICE setup. It goes
     through all the common questions and prompts for a user and initiates the
@@ -1280,13 +1296,15 @@ def default():
     for step in configure_steps:
         logger.info(step)
 
+    package_path = get_package_path(package_path)
+
     # step one, we can have lots of fun
     # configure local repos for calamari and ceph-deploy
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local('calamari-server')
-    configure_local('ceph-deploy')
+    configure_local('calamari-server', package_path)
+    configure_local('ceph-deploy', package_path)
 
     # step two, there's so much we can do
     # install calamari
@@ -1315,7 +1333,7 @@ def default():
         {markup}'.format(markup='===='))
     logger.info('')
     # configure the repo, tell it we want to keep versions around
-    ceph_destination_name = configure_remotes('ceph', versioned=True)
+    ceph_destination_name = configure_remote('ceph', package_path, versioned=True)
 
     # step five, don't you know that the time has arrived
     # configure current host to serve minion packages
@@ -1325,7 +1343,7 @@ def default():
         Step 5: minion repository setup \
         {markup}'.format(markup='===='))
     logger.info('')
-    configure_remotes('calamari-minions')
+    configure_remote('calamari-minions', package_path)
 
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
@@ -1406,6 +1424,11 @@ def ice_help():
     version = '  Version: %s' % __version__
     commands = """
 
+    Options:
+
+      -v / --verbose    Enable verbose output
+      -d / --dir        Override path to package files (defaults to
+                        current working directory)
     Subcommands:
 
       configure         Configuration of the ICE node
@@ -1430,7 +1453,7 @@ def sudo_check():
 
 @catches(ICEError)
 def _main(argv=None):
-    options = [['-v', '--verbose']]
+    options = [['-v', '--verbose'], ['-d', '--dir']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
     parser.parse_args()
@@ -1454,11 +1477,9 @@ def _main(argv=None):
     parser.catches_help()
     parser.catches_version()
 
-    # when no arguments are passed in, just use our default routine
-    if not parser.arguments:
-        sudo_check()
-        default()
-
+    # when no subcommands are passed in, just use our default routine
+    sudo_check()
+    default(parser.get('-d', CWD))
 
 def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
