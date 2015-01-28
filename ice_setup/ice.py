@@ -296,9 +296,9 @@ class UnsupportedPlatform(ICEError):
     pass
 
 
-class FileNotFound(ICEError):
+class DirNotFound(ICEError):
     """
-    Provide meaningful information when a given file is not found in the
+    Provide meaningful information when a given directory is not found in the
     filesystem
     """
 
@@ -308,6 +308,15 @@ class FileNotFound(ICEError):
 
     def __str__(self):
         return 'could not find %s' % self.filepath
+
+
+class VersionNotFound(DirNotFound):
+    """
+    Versioned directory could not be found
+    """
+
+    def __str__(self):
+        return 'could not find version directory in %s' % self.filepath
 
 
 # =============================================================================
@@ -964,14 +973,20 @@ def get_package_source(package_path, package_name, traverse=False):
     """
     package_path = package_path or CWD
     pkg_path = os.path.join(package_path, package_name)
+    if not os.path.isdir(pkg_path):
+        raise DirNotFound(pkg_path)
     if traverse:
         for root, dirs, files in os.walk(pkg_path):
             # be blatant here so we break if the dir is not there
-            pkg_path = os.path.join(pkg_path, dirs[0])
-            break
+            # We're not actually searching - we are descending one dir and only
+            # expecting to find one dir (the version).
+            try:
+                pkg_path = os.path.join(pkg_path, dirs[0])
+            except IndexError:
+                raise VersionNotFound(pkg_path)
+            else:
+                break
 
-    if not os.path.exists(pkg_path):
-        raise FileNotFound(pkg_path)
     logger.debug('detected packages path: %s', pkg_path)
     return pkg_path
 
