@@ -1186,15 +1186,15 @@ def configure_remote(
 
     if versioned:
         # this means that we need to also grab the end part of the
-        # package_path, as that represents the version that should also
+        # package_source, as that represents the version that should also
         # get used for the destination to avoid overwriting repos
         destination_name = os.path.join(
-            destination_name, os.path.basename(package_path)
+            destination_name, os.path.basename(package_source)
         )
 
     # overwrite the repo with the new packages
     overwrite_dir(
-        package_path,
+        package_source,
         destination=os.path.join(
             repo_dest_prefix,
             destination_name,
