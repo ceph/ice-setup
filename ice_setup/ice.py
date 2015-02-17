@@ -31,6 +31,7 @@ import tarfile
 import tempfile
 import urllib2
 import urlparse
+from ConfigParser import SafeConfigParser, NoSectionError, NoOptionError
 
 from functools import wraps
 from textwrap import dedent
@@ -620,6 +621,45 @@ class Yum(object):
         pass
 
     @classmethod
+    def sync(cls, repos):
+        # resolve needed dependencies
+        if not which('syncrepo'):
+            self.install('yum-utils')
+        if not which('createrepo'):
+            self.install('createrepo')
+
+        # infer the path to the ceph repo by looking at cephdeploy.conf because
+        # we never overwrite ceph, rather, we rely on versions so the path for
+        # ceph can have multiple versions already, like ``static/ceph/0.80``
+        # and ``static/ceph/0.86``
+        destinations = {
+            'ceph' : infer_ceph_repo(),
+            'ceph-deploy': '/opt/ICE/ceph-deploy',
+            'calamari': '/opt/ICE/calamari-server',
+        }
+
+        repo_ids = {
+            'ceph-deploy': 'Server-RH7-CEPH-INSTALLER-1.2',
+            'ceph': 'Server-RH7-CEPH-1.2',
+            'calamari': 'Server-RH7-CEPH-CALAMARI-1.2'
+        }
+
+        for repo in repos:
+            destination = destinations[repo]
+            repoid = repo_ids[repo]
+            run(
+                [
+                    'reposync',
+                    '--repoid=%s' % repoid,
+                    '--newest-only',
+                    '--norepopath',
+                    '-p',
+                    destination
+                ]
+            )
+
+
+    @classmethod
     def enumerate_repo(cls, path):
         """find rpms in path and return their package names"""
         # make list of rpm files relative to path
@@ -1002,6 +1042,82 @@ def get_package_source(package_path, package_name, traverse=False):
 
     logger.debug('detected packages path: %s', pkg_path)
     return pkg_path
+
+
+def get_ceph_deploy_conf_paths():
+    """
+    Return all the possible cephdeploy.conf locations including the one for
+    ``root`` if the user is calling us with ``sudo`` and not as ``root`` user.
+    """
+    configs = [
+        os.path.join(os.getcwd(), 'cephdeploy.conf'),
+        os.path.expanduser(u'~/.cephdeploy.conf'),
+    ]
+    sudoer_user = os.environ.get('SUDO_USER')
+    if sudoer_user:
+        sudoer_home = os.path.expanduser('~' + sudoer_user)
+        configs.append(os.path.join(sudoer_home, '.cephdeploy.conf'))
+
+    return configs
+
+
+# =============================================================================
+# System Utils
+# =============================================================================
+
+
+def which(executable):
+    """find the location of an executable"""
+    if 'PATH' in os.environ:
+        envpath = os.environ['PATH']
+    else:
+        envpath = os.defpath
+    PATH = envpath.split(os.pathsep)
+
+    locations = PATH + [
+        '/usr/local/bin',
+        '/bin',
+        '/usr/bin',
+        '/usr/local/sbin',
+        '/usr/sbin',
+        '/sbin',
+    ]
+
+    for location in locations:
+        executable_path = os.path.join(location, executable)
+        if os.path.exists(executable_path):
+            return executable_path
+
+
+def infer_ceph_repo():
+    configs = get_ceph_deploy_conf_paths()
+    config = None
+    for conf in configs:
+        if os.path.exists(conf):
+            config = conf
+            break
+
+    if not config:
+        logger.error('tried looking for a valid cephdeploy.conf file but failed')
+        raise DirNotFound(configs[0])
+
+    parser = SafeConfigParser()
+    parser.read(config)
+
+    try:
+        http_path = parser.get(section, key)
+    except (NoSectionError, NoOptionError):
+        msg = 'could not find a ``ceph`` repo section at %s' % config
+        raise ICEError(msg)
+
+    directories = http_path.split('/')
+    # if we had a trailing slash fallback the next item
+    # In [4]: 'http://fqdn/static/ceph/0.80/'.split('/')
+    # Out[4]: ['http:', '', 'fqdn', 'static', 'ceph', '0.80', '']
+    directory = directories[-1] or directories[-2]
+
+    return os.path.join('/opt/calamari/webapp/content/ceph', directory)
+
 
 
 # =============================================================================
@@ -1505,7 +1621,7 @@ class UpdateRepo(object):
         parser.catch_help = self._help
         parser.parse_args()
 
-        #sudo_check()
+        sudo_check()
 
         if parser.has('all'):
             update_repo(self.optional_arguments)
@@ -1517,7 +1633,12 @@ class UpdateRepo(object):
 
 
 def update_repo(repos):
-    pass
+    distro = get_distro()
+    if len(repos) == 1:
+        logger.debug('updating repo: %s' % repos)
+    else:
+        logger.debug('updating repos: %s' % ' '.join(repos))
+    distro.pkg_manager.sync(repos)
 
 # =============================================================================
 # Main
