@@ -623,17 +623,17 @@ class Yum(object):
     @classmethod
     def sync(cls, repos):
         # resolve needed dependencies
-        if not which('syncrepo'):
-            self.install('yum-utils')
+        if not which('reposync'):
+            cls.install('yum-utils')
         if not which('createrepo'):
-            self.install('createrepo')
+            cls.install('createrepo')
 
         # infer the path to the ceph repo by looking at cephdeploy.conf because
         # we never overwrite ceph, rather, we rely on versions so the path for
         # ceph can have multiple versions already, like ``static/ceph/0.80``
         # and ``static/ceph/0.86``
         destinations = {
-            'ceph' : infer_ceph_repo(),
+            'ceph': infer_ceph_repo(),
             'ceph-deploy': '/opt/ICE/ceph-deploy',
             'calamari': '/opt/ICE/calamari-server',
         }
@@ -658,6 +658,8 @@ class Yum(object):
                 ]
             )
 
+            run(['createrepo', destination ])
+            run(['yum', 'clean', 'all'])
 
     @classmethod
     def enumerate_repo(cls, path):
@@ -1105,7 +1107,7 @@ def infer_ceph_repo():
     parser.read(config)
 
     try:
-        http_path = parser.get(section, key)
+        http_path = parser.get('ceph', 'baseurl')
     except (NoSectionError, NoOptionError):
         msg = 'could not find a ``ceph`` repo section at %s' % config
         raise ICEError(msg)
