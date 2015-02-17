@@ -1451,7 +1451,8 @@ def default(package_path, use_gpg):
         '1. Configure the ICE Node (current host) as a repository Host',
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
-        '4. Configure host as a ceph and calamari minion repository for remote hosts',
+        '4. Configure host as a Ceph repository for remote hosts',
+        '5. Configure host as a Calamari minion repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
@@ -1584,8 +1585,7 @@ def interactive_help(mode='interactive mode'):
 class UpdateRepo(object):
 
     _help = dedent("""
-    Connects to hosted repositories and fetches updates to packages for the
-    local repos.
+    Updates local repositories by synchronizing with remote update repositories.
 
     Commands:
 
