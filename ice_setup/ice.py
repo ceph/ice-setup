@@ -1091,8 +1091,8 @@ def which(executable):
             return executable_path
 
 
-def infer_ceph_repo():
-    configs = get_ceph_deploy_conf_paths()
+def infer_ceph_repo(_configs=None):
+    configs = _configs or get_ceph_deploy_conf_paths()
     config = None
     for conf in configs:
         if os.path.exists(conf):
