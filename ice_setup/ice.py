@@ -585,7 +585,7 @@ class Yum(object):
         )
 
     @classmethod
-    def import_repo(cls, gpg_path):
+    def import_repo_key(cls, gpg_path):
         """
         import the gpg key so that the repo is fully validated
         """
@@ -654,7 +654,7 @@ class Apt(object):
         )
 
     @classmethod
-    def import_repo(cls, gpg_path):
+    def import_repo_key(cls, gpg_path):
         """
         import the gpg key so that the repo is fully validated
         """
@@ -1281,7 +1281,7 @@ def configure_local(name, package_path):
         codename=distro.codename,
     )
 
-    distro.pkg_manager.import_repo(
+    distro.pkg_manager.import_repo_key(
         gpg_path,
     )
 
