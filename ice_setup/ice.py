@@ -474,6 +474,7 @@ master = {master}
 name=Calamari
 baseurl={minion_url}
 gpgkey={minion_gpg_url}
+gpgcheck={gpg_check}
 enabled=1
 priority=1
 proxy=_none_
@@ -482,6 +483,7 @@ proxy=_none_
 name=Ceph
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
+gpgcheck={gpg_check}
 default=true
 priority=1
 proxy=_none_
@@ -1217,7 +1219,7 @@ def configure_remote(
 
 
 def configure_ceph_deploy(master, minion_url, minion_gpg_url,
-                          ceph_url, ceph_gpg_url):
+                          ceph_url, ceph_gpg_url, use_gpg=True):
     """
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
@@ -1241,6 +1243,7 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
                 minion_gpg_url=minion_gpg_url,
                 ceph_url=ceph_url,
                 ceph_gpg_url=ceph_gpg_url,
+                gpg_check=1 if use_gpg else 0,
             )
 
             rc_file.write(contents)
