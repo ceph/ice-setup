@@ -76,6 +76,11 @@ VERBOSE_COLOR_FORMAT = "[%(name)s][$BOLD%(levelname)s] $RESET%(color_levelname)s
 CWD = os.getcwd()
 
 
+def get_rhel_gpg_path():
+    gpg_path = "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+    return 'file://%s' % gpg_path
+
+
 def color_message(message):
     message = message.replace("$RESET", RESET_SEQ).replace("$BOLD", BOLD_SEQ)
     return message
