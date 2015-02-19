@@ -1249,7 +1249,7 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
             rc_file.write(contents)
 
 
-def configure_local(name, package_path):
+def configure_local(name, package_path, use_gpg=True):
     """
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
@@ -1264,8 +1264,13 @@ def configure_local(name, package_path):
 
     package_source = get_package_source(package_path, name)
 
-    gpg_path = os.path.join(repo_dest_dir, 'release.asc')
-    gpg_url_path = 'file://%s' % gpg_path
+    distro = get_distro()
+
+    if distro.name == "redhat":
+        gpg_url_path = get_rhel_gpg_path()
+    else:
+        gpg_path = os.path.join(repo_dest_dir, 'release.asc')
+        gpg_url_path = 'file://%s' % gpg_path
 
     repo_url_path = 'file://%s' % os.path.join(
         repo_dest_prefix,
@@ -1281,18 +1286,19 @@ def configure_local(name, package_path):
         )
     )
 
-    distro = get_distro()
     distro.pkg_manager.create_repo_file(
         name,
         repo_url_path,
         gpg_url_path,
         file_name=name,
         codename=distro.codename,
+        use_gpg=use_gpg,
     )
 
-    distro.pkg_manager.import_repo_key(
-        gpg_path,
-    )
+    if distro.name != 'redhat' and use_gpg:
+        distro.pkg_manager.import_repo_key(
+            gpg_path,
+        )
 
     # call update on the package manager
     distro.pkg_manager.update()
