@@ -1321,7 +1321,7 @@ def install_ceph_deploy(distro=None):
     distro.pkg_manager.install('ceph-deploy')
 
 
-def default(package_path):
+def default(package_path, use_gpg):
     """
     This action is the default entry point for a generic ICE setup. It goes
     through all the common questions and prompts for a user and initiates the
@@ -1348,8 +1348,8 @@ def default(package_path):
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local('calamari-server', package_path)
-    configure_local('ceph-deploy', package_path)
+    configure_local('calamari-server', package_path, use_gpg=use_gpg)
+    configure_local('ceph-deploy', package_path, use_gpg=use_gpg)
 
     # step two, there's so much we can do
     # install calamari
@@ -1390,18 +1390,24 @@ def default(package_path):
     logger.info('')
     configure_remote('calamari-minions', package_path)
 
+    distro = get_distro()
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
     ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
-    ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
-        protocol,
-        fqdn,
-        ceph_destination_name
-    )
-    minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
-        protocol,
-        fqdn
-    )
+
+    if distro.name == "redhat":
+        ceph_gpg_url = get_rhel_gpg_path()
+        minion_gpg_url = ceph_gpg_url
+    else:
+        ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
+            protocol,
+            fqdn,
+            ceph_destination_name
+        )
+        minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
+            protocol,
+            fqdn
+        )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
@@ -1410,15 +1416,16 @@ def default(package_path):
         minion_gpg_url,
         ceph_url,
         ceph_gpg_url,
+        use_gpg=use_gpg,
     )
 
     # Print the output of what would the repo file look for remotes
-    distro = get_distro()
     distro.pkg_manager.print_repo_file(
         'ceph',
         repo_url=ceph_url,
         gpg_url=ceph_gpg_url,
         codename=distro.codename,
+        use_gpg=use_gpg,
     )
 
     logger.info('Setup has completed.')
@@ -1474,6 +1481,8 @@ def ice_help():
       -v / --verbose    Enable verbose output
       -d / --dir        Override path to package files (defaults to
                         current working directory)
+      --no-gpg          Disable GPG checking in repo files
+
     Subcommands:
 
       configure         Configuration of the ICE node
@@ -1498,7 +1507,7 @@ def sudo_check():
 
 @catches(ICEError)
 def _main(argv=None):
-    options = [['-v', '--verbose'], ['-d', '--dir']]
+    options = [['-v', '--verbose'], ['-d', '--dir'], ['--no-gpg']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
     parser.parse_args()
@@ -1524,7 +1533,7 @@ def _main(argv=None):
 
     # when no subcommands are passed in, just use our default routine
     sudo_check()
-    default(parser.get('-d', CWD))
+    default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
 
 def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
