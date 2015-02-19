@@ -421,10 +421,10 @@ ceph_deploy_yum_template = """
 name=ceph_deploy packages for $basearch
 baseurl={repo_url}
 enabled=1
-gpgcheck=1
 type=rpm-md
 priority=1
 gpgkey={gpg_url}
+gpgcheck={gpg_check}
 """
 
 calamari_yum_template = """
@@ -432,19 +432,20 @@ calamari_yum_template = """
 name=calamari packages for $basearch
 baseurl={repo_url}
 enabled=1
-gpgcheck=1
 type=rpm-md
 priority=1
 gpgkey={gpg_url}
+gpgcheck={gpg_check}
 """
 
 ceph_yum_template = """
 [ceph]
 name=Ceph
 baseurl={repo_url}
-gpgkey={gpg_url}
 default=true
 priority=1
+gpgkey={gpg_url}
+gpgcheck={gpg_check}
 proxy=_none_
 """
 
@@ -562,7 +563,7 @@ def append_item_or_list(list_, append):
 class Yum(object):
 
     @classmethod
-    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, use_gpg=True, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = '%s.repo' % (file_name or 'ice')
@@ -572,16 +573,21 @@ class Yum(object):
             contents = template.format(
                 gpg_url=gpg_url,
                 repo_url=repo_url,
+                gpg_check=1 if use_gpg else 0,
             )
             repo_file.write(contents)
 
     @classmethod
-    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, use_gpg=True, **kw):
         """print repo file as it would be written to yum.repos.d"""
         template = yum_templates[template_name]
         logger.info('Contents of %s repo file:' % template_name)
-        logger.info(template.format(
-            gpg_url=gpg_url, repo_url=repo_url)
+        logger.info(
+            template.format(
+                gpg_url=gpg_url,
+                repo_url=repo_url,
+                gpg_check=1 if use_gpg else 0,
+            )
         )
 
     @classmethod
