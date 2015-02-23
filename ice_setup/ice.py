@@ -76,6 +76,11 @@ VERBOSE_COLOR_FORMAT = "[%(name)s][$BOLD%(levelname)s] $RESET%(color_levelname)s
 CWD = os.getcwd()
 
 
+def get_rhel_gpg_path():
+    gpg_path = "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+    return 'file://%s' % gpg_path
+
+
 def color_message(message):
     message = message.replace("$RESET", RESET_SEQ).replace("$BOLD", BOLD_SEQ)
     return message
@@ -416,10 +421,10 @@ ceph_deploy_yum_template = """
 name=ceph_deploy packages for $basearch
 baseurl={repo_url}
 enabled=1
-gpgcheck=1
 type=rpm-md
 priority=1
 gpgkey={gpg_url}
+gpgcheck={gpg_check}
 """
 
 calamari_yum_template = """
@@ -427,19 +432,20 @@ calamari_yum_template = """
 name=calamari packages for $basearch
 baseurl={repo_url}
 enabled=1
-gpgcheck=1
 type=rpm-md
 priority=1
 gpgkey={gpg_url}
+gpgcheck={gpg_check}
 """
 
 ceph_yum_template = """
 [ceph]
 name=Ceph
 baseurl={repo_url}
-gpgkey={gpg_url}
 default=true
 priority=1
+gpgkey={gpg_url}
+gpgcheck={gpg_check}
 proxy=_none_
 """
 
@@ -468,6 +474,7 @@ master = {master}
 name=Calamari
 baseurl={minion_url}
 gpgkey={minion_gpg_url}
+gpgcheck={gpg_check}
 enabled=1
 priority=1
 proxy=_none_
@@ -476,6 +483,7 @@ proxy=_none_
 name=Ceph
 baseurl={ceph_url}
 gpgkey={ceph_gpg_url}
+gpgcheck={gpg_check}
 default=true
 priority=1
 proxy=_none_
@@ -557,7 +565,7 @@ def append_item_or_list(list_, append):
 class Yum(object):
 
     @classmethod
-    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+    def create_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, use_gpg=True, **kw):
         """set the contents of /etc/yum.repos.d/ice.repo"""
         etc_path = kw.pop('etc_path', '/etc/yum.repos.d')
         file_name = '%s.repo' % (file_name or 'ice')
@@ -567,20 +575,25 @@ class Yum(object):
             contents = template.format(
                 gpg_url=gpg_url,
                 repo_url=repo_url,
+                gpg_check=1 if use_gpg else 0,
             )
             repo_file.write(contents)
 
     @classmethod
-    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, **kw):
+    def print_repo_file(cls, template_name, repo_url, gpg_url, file_name=None, use_gpg=True, **kw):
         """print repo file as it would be written to yum.repos.d"""
         template = yum_templates[template_name]
         logger.info('Contents of %s repo file:' % template_name)
-        logger.info(template.format(
-            gpg_url=gpg_url, repo_url=repo_url)
+        logger.info(
+            template.format(
+                gpg_url=gpg_url,
+                repo_url=repo_url,
+                gpg_check=1 if use_gpg else 0,
+            )
         )
 
     @classmethod
-    def import_repo(cls, gpg_path):
+    def import_repo_key(cls, gpg_path):
         """
         import the gpg key so that the repo is fully validated
         """
@@ -649,7 +662,7 @@ class Apt(object):
         )
 
     @classmethod
-    def import_repo(cls, gpg_path):
+    def import_repo_key(cls, gpg_path):
         """
         import the gpg key so that the repo is fully validated
         """
@@ -1206,7 +1219,7 @@ def configure_remote(
 
 
 def configure_ceph_deploy(master, minion_url, minion_gpg_url,
-                          ceph_url, ceph_gpg_url):
+                          ceph_url, ceph_gpg_url, use_gpg=True):
     """
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
@@ -1230,12 +1243,13 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
                 minion_gpg_url=minion_gpg_url,
                 ceph_url=ceph_url,
                 ceph_gpg_url=ceph_gpg_url,
+                gpg_check=1 if use_gpg else 0,
             )
 
             rc_file.write(contents)
 
 
-def configure_local(name, package_path):
+def configure_local(name, package_path, use_gpg=True):
     """
     Configure the current host so that it can serve as a *local* repo server
     and we can then install Calamari and ceph-deploy.
@@ -1250,8 +1264,13 @@ def configure_local(name, package_path):
 
     package_source = get_package_source(package_path, name)
 
-    gpg_path = os.path.join(repo_dest_dir, 'release.asc')
-    gpg_url_path = 'file://%s' % gpg_path
+    distro = get_distro()
+
+    if distro.name == "redhat":
+        gpg_url_path = get_rhel_gpg_path()
+    else:
+        gpg_path = os.path.join(repo_dest_dir, 'release.asc')
+        gpg_url_path = 'file://%s' % gpg_path
 
     repo_url_path = 'file://%s' % os.path.join(
         repo_dest_prefix,
@@ -1267,18 +1286,19 @@ def configure_local(name, package_path):
         )
     )
 
-    distro = get_distro()
     distro.pkg_manager.create_repo_file(
         name,
         repo_url_path,
         gpg_url_path,
         file_name=name,
         codename=distro.codename,
+        use_gpg=use_gpg,
     )
 
-    distro.pkg_manager.import_repo(
-        gpg_path,
-    )
+    if distro.name != 'redhat' and use_gpg:
+        distro.pkg_manager.import_repo_key(
+            gpg_path,
+        )
 
     # call update on the package manager
     distro.pkg_manager.update()
@@ -1301,7 +1321,7 @@ def install_ceph_deploy(distro=None):
     distro.pkg_manager.install('ceph-deploy')
 
 
-def default(package_path):
+def default(package_path, use_gpg):
     """
     This action is the default entry point for a generic ICE setup. It goes
     through all the common questions and prompts for a user and initiates the
@@ -1328,8 +1348,8 @@ def default(package_path):
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local('calamari-server', package_path)
-    configure_local('ceph-deploy', package_path)
+    configure_local('calamari-server', package_path, use_gpg=use_gpg)
+    configure_local('ceph-deploy', package_path, use_gpg=use_gpg)
 
     # step two, there's so much we can do
     # install calamari
@@ -1370,18 +1390,24 @@ def default(package_path):
     logger.info('')
     configure_remote('calamari-minions', package_path)
 
+    distro = get_distro()
     # create the proper URLs for the repos
     minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
     ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
-    ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
-        protocol,
-        fqdn,
-        ceph_destination_name
-    )
-    minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
-        protocol,
-        fqdn
-    )
+
+    if distro.name == "redhat":
+        ceph_gpg_url = get_rhel_gpg_path()
+        minion_gpg_url = ceph_gpg_url
+    else:
+        ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
+            protocol,
+            fqdn,
+            ceph_destination_name
+        )
+        minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
+            protocol,
+            fqdn
+        )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
@@ -1390,15 +1416,16 @@ def default(package_path):
         minion_gpg_url,
         ceph_url,
         ceph_gpg_url,
+        use_gpg=use_gpg,
     )
 
     # Print the output of what would the repo file look for remotes
-    distro = get_distro()
     distro.pkg_manager.print_repo_file(
         'ceph',
         repo_url=ceph_url,
         gpg_url=ceph_gpg_url,
         codename=distro.codename,
+        use_gpg=use_gpg,
     )
 
     logger.info('Setup has completed.')
@@ -1454,6 +1481,8 @@ def ice_help():
       -v / --verbose    Enable verbose output
       -d / --dir        Override path to package files (defaults to
                         current working directory)
+      --no-gpg          Disable GPG checking in repo files
+
     Subcommands:
 
       configure         Configuration of the ICE node
@@ -1478,7 +1507,7 @@ def sudo_check():
 
 @catches(ICEError)
 def _main(argv=None):
-    options = [['-v', '--verbose'], ['-d', '--dir']]
+    options = [['-v', '--verbose'], ['-d', '--dir'], ['--no-gpg']]
     argv = argv or sys.argv
     parser = Transport(argv, mapper=command_map, options=options)
     parser.parse_args()
@@ -1504,7 +1533,7 @@ def _main(argv=None):
 
     # when no subcommands are passed in, just use our default routine
     sudo_check()
-    default(parser.get('-d', CWD))
+    default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
 
 def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
