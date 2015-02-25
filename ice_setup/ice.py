@@ -546,6 +546,7 @@ def get_distro():
     module.release = release
     module.codename = codename
     module.machine_type = platform.machine()
+    module.normalized_release = _normalized_release(release)
 
     # XXX: Do we need to know about the init?
     #module.init = _choose_init(distro_name, codename)
@@ -925,6 +926,35 @@ def _normalized_distro_name(distro):
     elif distro.startswith('centos'):
         return 'centos'
     return distro
+
+
+def _normalized_release(release):
+    """
+    A normalizer function to make sense of distro
+    release versions.
+    Returns an object with: major, minor, patch, and garbage
+    These attributes can be accessed as ints with prefixed "int"
+    attribute names, for example:
+        normalized_version.int_major
+    """
+    release = release.strip()
+
+    class NormalizedVersion(object):
+        pass
+    v = NormalizedVersion()  # fake object to get nice dotted access
+    v.major, v.minor, v.patch, v.garbage = (release.split('.') + ["0"]*4)[:4]
+    release_map = dict(major=v.major, minor=v.minor, patch=v.patch, garbage=v.garbage)
+
+    # safe int versions that remove non-numerical chars
+    # for example 'rc1' in a version like '1-rc1
+    for name, value in release_map.items():
+        if '-' in value:  # get rid of garbage like -dev1 or -rc1
+            value = value.split('-')[0]
+        value = int(''.join(c for c in value if c.isdigit()) or 0)
+        int_name = "int_%s" % name
+        setattr(v, int_name, value)
+
+    return v
 
 
 # =============================================================================
