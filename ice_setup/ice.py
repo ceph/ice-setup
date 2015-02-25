@@ -622,7 +622,7 @@ class Yum(object):
         pass
 
     @classmethod
-    def sync(cls, repos):
+    def sync(cls, repos, distro):
         # resolve needed dependencies
         if not which('reposync'):
             cls.install('yum-utils')
@@ -633,29 +633,40 @@ class Yum(object):
         # we never overwrite ceph, rather, we rely on versions so the path for
         # ceph can have multiple versions already, like ``static/ceph/0.80``
         # and ``static/ceph/0.86``
-        destinations = {
-            'ceph': infer_ceph_repo(),
-            'calamari-minions': '/opt/calamari/webapp/content/calamari-minions',
+        repo_mapping = {
+            'ceph': {
+                'sources': {
+                    '6': ['rhel-6-server-rhceph-1.2-mon-rpms',
+                          'rhel-6-server-rhceph-1.2-osd-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.2-mon-rpms',
+                          'rhel-7-server-rhceph-1.2-osd-rpms']
+                },
+                'destination': infer_ceph_repo()
+            },
+            'calamari-minions': {
+                'sources': {
+                    '6': ['rhel-6-server-rhceph-1.2-calamari-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.2-calamari-rpms']
+                },
+                'destination': '/opt/calamari/webapp/content/calamari-minions'
+            }
         }
 
-        repo_ids = {
-            'ceph': 'Server-RH7-CEPH-1.2',
-            'calamari-minions': 'Server-RH7-CEPH-CALAMARI-1.2'
-        }
+
 
         for repo in repos:
-            destination = destinations[repo]
-            repoid = repo_ids[repo]
-            run(
-                [
-                    'reposync',
-                    '--repoid=%s' % repoid,
-                    '--newest-only',
-                    '--norepopath',
-                    '-p',
-                    destination
-                ]
-            )
+            destination = repo_mapping[repo]['destination']
+            for repo_id in repo_mapping[repo]['sources'][distro.normalized_release.major]:
+                run(
+                    [
+                        'reposync',
+                        '--repoid=%s' % repo_id,
+                        '--newest-only',
+                        '--norepopath',
+                        '-p',
+                        destination
+                    ]
+                )
 
             run(['createrepo', destination ])
             run(['yum', 'clean', 'all'])
@@ -1664,7 +1675,7 @@ def update_repo(repos):
         ' '.join(repos)
         )
     )
-    distro.pkg_manager.sync(repos)
+    distro.pkg_manager.sync(repos, distro)
 
 # =============================================================================
 # Main
