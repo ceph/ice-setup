@@ -635,14 +635,12 @@ class Yum(object):
         # and ``static/ceph/0.86``
         destinations = {
             'ceph': infer_ceph_repo(),
-            'ceph-deploy': '/opt/ICE/ceph-deploy',
-            'calamari': '/opt/ICE/calamari-server',
+            'calamari-minions': '/opt/calamari/webapp/content/calamari-minions',
         }
 
         repo_ids = {
-            'ceph-deploy': 'Server-RH7-CEPH-INSTALLER-1.2',
             'ceph': 'Server-RH7-CEPH-1.2',
-            'calamari': 'Server-RH7-CEPH-CALAMARI-1.2'
+            'calamari-minions': 'Server-RH7-CEPH-CALAMARI-1.2'
         }
 
         for repo in repos:
@@ -1620,13 +1618,12 @@ class UpdateRepo(object):
     Commands:
 
       all         Updates all repositories configured for this host
-                  (ceph, ceph-deploy, and calamari)
+                  (ceph and calamari-minions)
 
     Optional Arguments:
 
       ceph              Update the ceph repo
-      ceph-deploy       Update the ceph-deploy repo
-      calamari-server   Update the calamari repo
+      calamari-minions  Update the calamari-minions repo
 
     Examples:
 
@@ -1634,18 +1631,14 @@ class UpdateRepo(object):
 
       ice_setup update all
 
-    Update the calamari and ceph-deploy repos:
+    Update just the ceph repo:
 
-      ice_setup update ceph-deploy calamari
-
-    Update just the ceph-deploy repo:
-
-      ice_setup update ceph-deploy
+      ice_setup update ceph
     """)
 
     def __init__(self, argv):
         self.argv = argv
-        self.optional_arguments = ['ceph', 'ceph-deploy', 'calamari']
+        self.optional_arguments = ['ceph', 'calamari-minions']
 
     def parse_args(self):
         options = ['all']
