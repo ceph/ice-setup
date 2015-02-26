@@ -1291,6 +1291,8 @@ class Configure(object):
             configure_remote('ceph', package_path, versioned=True)
             configure_remote('calamari-minions', package_path)
 
+        return True
+
 
 def fqdn_with_protocol():
     """
@@ -1676,6 +1678,8 @@ class UpdateRepo(object):
                     error_msg = "Unrecognized repo name(s) given: %s" % (", ".join(frozenset(parser.arguments).difference(self.optional_arguments)))
                     raise InvalidRepoName(error_msg)
 
+        return True
+
 
 def update_repo(repos):
     distro = get_distro()
@@ -1750,11 +1754,12 @@ def _main(argv=None):
     # parse first with no help; set defaults later
     parser.catch_version = __version__
     parser.catch_help = ice_help()
-    parser.dispatch()
+    subcmds = parser.dispatch()
 
     # when no subcommands are passed in, just use our default routine
-    sudo_check()
-    default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
+    if not subcmds:
+        sudo_check()
+        default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
 
 def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
