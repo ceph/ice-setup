@@ -1752,10 +1752,6 @@ def _main(argv=None):
     parser.catch_help = ice_help()
     parser.dispatch()
 
-    # if dispatch did not catch anything now, parse help
-    parser.catches_help()
-    parser.catches_version()
-
     # when no subcommands are passed in, just use our default routine
     sudo_check()
     default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
