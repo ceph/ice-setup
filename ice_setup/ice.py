@@ -325,6 +325,11 @@ class VersionNotFound(DirNotFound):
         return 'could not find version directory in %s' % self.filepath
 
 
+class InvalidRepoName(ICEError):
+    """Unrecognized name of repository"""
+    pass
+
+
 # =============================================================================
 # Decorators
 # =============================================================================
@@ -1649,7 +1654,7 @@ class UpdateRepo(object):
 
     def __init__(self, argv):
         self.argv = argv
-        self.optional_arguments = ['ceph', 'calamari-minions']
+        self.optional_arguments = frozenset(['ceph', 'calamari-minions'])
 
     def parse_args(self):
         options = ['all']
@@ -1663,9 +1668,13 @@ class UpdateRepo(object):
             update_repo(self.optional_arguments)
         else:
             if parser.arguments:
-                update_repo(
-                    [i for i in parser.arguments if i in self.optional_arguments]
-                )
+                if frozenset(parser.arguments).issubset(self.optional_arguments):
+                    update_repo(
+                        [i for i in parser.arguments if i in self.optional_arguments]
+                    )
+                else:
+                    error_msg = "Unrecognized repo name(s) given: %s" % (", ".join(frozenset(parser.arguments).difference(self.optional_arguments)))
+                    raise InvalidRepoName(error_msg)
 
 
 def update_repo(repos):
