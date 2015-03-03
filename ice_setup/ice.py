@@ -1148,7 +1148,7 @@ def fqdn_with_protocol():
         return fqdn_with_protocol()
 
     protocol = prompt(
-        'what protocol would this host use (http or https)?',
+        'If you have manually configured your Calamari web server for HTTPS, select \'https\', otherwise select the default \'http\'',
         default='http',
         lowercase=True,
     )
