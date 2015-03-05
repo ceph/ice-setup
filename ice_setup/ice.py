@@ -31,6 +31,7 @@ import tarfile
 import tempfile
 import urllib2
 import urlparse
+from ConfigParser import SafeConfigParser, NoSectionError, NoOptionError
 
 from functools import wraps
 from textwrap import dedent
@@ -324,6 +325,11 @@ class VersionNotFound(DirNotFound):
         return 'could not find version directory in %s' % self.filepath
 
 
+class InvalidRepoName(ICEError):
+    """Unrecognized name of repository"""
+    pass
+
+
 # =============================================================================
 # Decorators
 # =============================================================================
@@ -545,6 +551,7 @@ def get_distro():
     module.release = release
     module.codename = codename
     module.machine_type = platform.machine()
+    module.normalized_release = _normalized_release(release)
 
     # XXX: Do we need to know about the init?
     #module.init = _choose_init(distro_name, codename)
@@ -618,6 +625,56 @@ class Yum(object):
     def update(cls):
         # stub
         pass
+
+    @classmethod
+    def sync(cls, repos, distro):
+        # resolve needed dependencies
+        if not which('reposync'):
+            cls.install('yum-utils')
+        if not which('createrepo'):
+            cls.install('createrepo')
+
+        # infer the path to the ceph repo by looking at cephdeploy.conf because
+        # we never overwrite ceph, rather, we rely on versions so the path for
+        # ceph can have multiple versions already, like ``static/ceph/0.80``
+        # and ``static/ceph/0.86``
+        repo_mapping = {
+            'ceph': {
+                'sources': {
+                    '6': ['rhel-6-server-rhceph-1.2-mon-rpms',
+                          'rhel-6-server-rhceph-1.2-osd-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.2-mon-rpms',
+                          'rhel-7-server-rhceph-1.2-osd-rpms']
+                },
+                'destination': infer_ceph_repo()
+            },
+            'calamari-minions': {
+                'sources': {
+                    '6': ['rhel-6-server-rhceph-1.2-calamari-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.2-calamari-rpms']
+                },
+                'destination': '/opt/calamari/webapp/content/calamari-minions'
+            }
+        }
+
+
+
+        for repo in repos:
+            destination = repo_mapping[repo]['destination']
+            for repo_id in repo_mapping[repo]['sources'][distro.normalized_release.major]:
+                run(
+                    [
+                        'reposync',
+                        '--repoid=%s' % repo_id,
+                        '--newest-only',
+                        '--norepopath',
+                        '-p',
+                        destination
+                    ]
+                )
+
+            run(['createrepo', destination ])
+            run(['yum', 'clean', 'all'])
 
     @classmethod
     def enumerate_repo(cls, path):
@@ -885,6 +942,35 @@ def _normalized_distro_name(distro):
     return distro
 
 
+def _normalized_release(release):
+    """
+    A normalizer function to make sense of distro
+    release versions.
+    Returns an object with: major, minor, patch, and garbage
+    These attributes can be accessed as ints with prefixed "int"
+    attribute names, for example:
+        normalized_version.int_major
+    """
+    release = release.strip()
+
+    class NormalizedVersion(object):
+        pass
+    v = NormalizedVersion()  # fake object to get nice dotted access
+    v.major, v.minor, v.patch, v.garbage = (release.split('.') + ["0"]*4)[:4]
+    release_map = dict(major=v.major, minor=v.minor, patch=v.patch, garbage=v.garbage)
+
+    # safe int versions that remove non-numerical chars
+    # for example 'rc1' in a version like '1-rc1
+    for name, value in release_map.items():
+        if '-' in value:  # get rid of garbage like -dev1 or -rc1
+            value = value.split('-')[0]
+        value = int(''.join(c for c in value if c.isdigit()) or 0)
+        int_name = "int_%s" % name
+        setattr(v, int_name, value)
+
+    return v
+
+
 # =============================================================================
 # File Utilities
 # =============================================================================
@@ -1002,6 +1088,82 @@ def get_package_source(package_path, package_name, traverse=False):
 
     logger.debug('detected packages path: %s', pkg_path)
     return pkg_path
+
+
+def get_ceph_deploy_conf_paths():
+    """
+    Return all the possible cephdeploy.conf locations including the one for
+    ``root`` if the user is calling us with ``sudo`` and not as ``root`` user.
+    """
+    configs = [
+        os.path.join(os.getcwd(), 'cephdeploy.conf'),
+        os.path.expanduser(u'~/.cephdeploy.conf'),
+    ]
+    sudoer_user = os.environ.get('SUDO_USER')
+    if sudoer_user:
+        sudoer_home = os.path.expanduser('~' + sudoer_user)
+        configs.append(os.path.join(sudoer_home, '.cephdeploy.conf'))
+
+    return configs
+
+
+# =============================================================================
+# System Utils
+# =============================================================================
+
+
+def which(executable):
+    """find the location of an executable"""
+    if 'PATH' in os.environ:
+        envpath = os.environ['PATH']
+    else:
+        envpath = os.defpath
+    PATH = envpath.split(os.pathsep)
+
+    locations = PATH + [
+        '/usr/local/bin',
+        '/bin',
+        '/usr/bin',
+        '/usr/local/sbin',
+        '/usr/sbin',
+        '/sbin',
+    ]
+
+    for location in locations:
+        executable_path = os.path.join(location, executable)
+        if os.path.exists(executable_path):
+            return executable_path
+
+
+def infer_ceph_repo(_configs=None):
+    configs = _configs or get_ceph_deploy_conf_paths()
+    config = None
+    for conf in configs:
+        if os.path.exists(conf):
+            config = conf
+            break
+
+    if not config:
+        logger.error('tried looking for a valid cephdeploy.conf file but failed')
+        raise DirNotFound(configs[0])
+
+    parser = SafeConfigParser()
+    parser.read(config)
+
+    try:
+        http_path = parser.get('ceph', 'baseurl')
+    except (NoSectionError, NoOptionError):
+        msg = 'could not find a ``ceph`` repo section at %s' % config
+        raise ICEError(msg)
+
+    directories = http_path.split('/')
+    # if we had a trailing slash fallback the next item
+    # In [4]: 'http://fqdn/static/ceph/0.80/'.split('/')
+    # Out[4]: ['http:', '', 'fqdn', 'static', 'ceph', '0.80', '']
+    directory = directories[-1] or directories[-2]
+
+    return os.path.join('/opt/calamari/webapp/content/ceph', directory)
+
 
 
 # =============================================================================
@@ -1128,6 +1290,8 @@ class Configure(object):
             package_path = parser.get('remote')
             configure_remote('ceph', package_path, versioned=True)
             configure_remote('calamari-minions', package_path)
+
+        return True
 
 
 def fqdn_with_protocol():
@@ -1333,7 +1497,8 @@ def default(package_path, use_gpg):
         '1. Configure the ICE Node (current host) as a repository Host',
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
-        '4. Configure host as a ceph and calamari minion repository for remote hosts',
+        '4. Configure host as a Ceph repository for remote hosts',
+        '5. Configure host as a Calamari minion repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
@@ -1463,12 +1628,75 @@ def interactive_help(mode='interactive mode'):
     prompt_continue()
 
 
+class UpdateRepo(object):
+
+    _help = dedent("""
+    Updates local repositories by synchronizing with remote update repositories.
+
+    Commands:
+
+      all         Updates all repositories configured for this host
+                  (ceph and calamari-minions)
+
+    Optional Arguments:
+
+      ceph              Update the ceph repo
+      calamari-minions  Update the calamari-minions repo
+
+    Examples:
+
+    Update all of the repos available:
+
+      ice_setup update all
+
+    Update just the ceph repo:
+
+      ice_setup update ceph
+    """)
+
+    def __init__(self, argv):
+        self.argv = argv
+        self.optional_arguments = frozenset(['ceph', 'calamari-minions'])
+
+    def parse_args(self):
+        options = ['all']
+        parser = Transport(self.argv, options=options)
+        parser.catch_help = self._help
+        parser.parse_args()
+
+        sudo_check()
+
+        if parser.has('all'):
+            update_repo(self.optional_arguments)
+        else:
+            if parser.arguments:
+                if frozenset(parser.arguments).issubset(self.optional_arguments):
+                    update_repo(
+                        [i for i in parser.arguments if i in self.optional_arguments]
+                    )
+                else:
+                    error_msg = "Unrecognized repo name(s) given: %s" % (", ".join(frozenset(parser.arguments).difference(self.optional_arguments)))
+                    raise InvalidRepoName(error_msg)
+
+        return True
+
+
+def update_repo(repos):
+    distro = get_distro()
+    logger.debug('updating repo%s: %s' % (
+        's' if len(repos) > 1 else '',
+        ' '.join(repos)
+        )
+    )
+    distro.pkg_manager.sync(repos, distro)
+
 # =============================================================================
 # Main
 # =============================================================================
 
 command_map = {
     'configure': Configure,
+    'update': UpdateRepo,
 }
 
 
@@ -1486,6 +1714,7 @@ def ice_help():
     Subcommands:
 
       configure         Configuration of the ICE node
+      update            Update local repositories from hosted repos.
     """
     return '%s\n%s\n%s\n%s' % (
         help_header,
@@ -1525,15 +1754,12 @@ def _main(argv=None):
     # parse first with no help; set defaults later
     parser.catch_version = __version__
     parser.catch_help = ice_help()
-    parser.dispatch()
-
-    # if dispatch did not catch anything now, parse help
-    parser.catches_help()
-    parser.catches_version()
+    subcmds = parser.dispatch()
 
     # when no subcommands are passed in, just use our default routine
-    sudo_check()
-    default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
+    if not subcmds:
+        sudo_check()
+        default(parser.get('-d', CWD), not parser.has(('--no-gpg')))
 
 def main():
     # This try/except dance *just* for KeyboardInterrupt is horrible but there
