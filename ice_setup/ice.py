@@ -463,7 +463,7 @@ ceph_deploy_apt_template = """deb {repo_url} {codename} main\n"""
 
 
 ceph_deploy_rc = """
-# This file was automatically generated after ice_setup.py was run. It provides
+# This file was automatically generated after ice_setup was run. It provides
 # the repository url and GPG information so that ceph-deploy can install the
 # repositories in remote hosts.
 #
