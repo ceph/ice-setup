@@ -1,0 +1,18 @@
+Source: ice-setup
+Maintainer: Dan Mick <dan.mick@redhat.com>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7.4.3)
+Standards-Version: 3.9.1
+X-Python-Version: >=2.6
+
+Package: ice-setup
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Setup script for Red Hat Ceph
+ A standalone setup script to install and configure different services for Ceph
+ like Calamari, ceph-deploy and package repositories.
+
+
+
+
