@@ -1,0 +1,11 @@
+ice-setup (0.3.0-2) unstable; urgency=low
+
+  * stamp with packaging info, modify to native package
+
+ -- Dan Mick <dan.mick@redhat.com>  Fri, 13 Mar 2015 17:12:04 -0700
+
+ice-setup (0.3.0-1) unstable; urgency=low
+
+  * source package automatically created by stdeb 0.8.5
+
+ -- unknown <unknown@unknown>  Thu, 12 Mar 2015 12:09:53 -0700
