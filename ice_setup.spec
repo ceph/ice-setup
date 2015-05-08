@@ -19,6 +19,7 @@ URL:            https://github.com/ceph/ice-setup
 # 3. git checkout <the version you want>
 # 4. python setup.py sdist
 Source0:        %{name}-%{version}.tar.gz
+Requires:       python-setuptools
 BuildArch:      noarch
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
