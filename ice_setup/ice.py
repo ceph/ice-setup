@@ -1500,8 +1500,8 @@ def default(package_path, use_gpg):
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local('calamari-server', package_path, use_gpg=use_gpg)
-    configure_local('ceph-deploy', package_path, use_gpg=use_gpg)
+    configure_local('Calamari', package_path, use_gpg=use_gpg)
+    configure_local('Installer', package_path, use_gpg=use_gpg)
 
     # step two, there's so much we can do
     # install calamari
