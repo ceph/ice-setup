@@ -1058,7 +1058,7 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     logger.debug('copied contents from: %s to %s' % (source, destination))
 
 
-def get_package_source(package_path, package_name, traverse=False):
+def get_package_source(package_path, package_name):
     """
     Constructs the source location of the package files, verifying that the
     resulting path exists.
@@ -1067,24 +1067,11 @@ def get_package_source(package_path, package_name, traverse=False):
                          current working directory
     :param package_name: Name of directory containing package files (e.g. 'ceph',
                          'calamari-server')
-    :param traverse: traverse one level in and use the first directory. # XXX magic
-                     for use with versioned reposistories (e.g. 'ceph/0.80')
     """
     package_path = package_path or CWD
     pkg_path = os.path.join(package_path, package_name)
     if not os.path.isdir(pkg_path):
         raise DirNotFound(pkg_path)
-    if traverse:
-        for root, dirs, files in os.walk(pkg_path):
-            # be blatant here so we break if the dir is not there
-            # We're not actually searching - we are descending one dir and only
-            # expecting to find one dir (the version).
-            try:
-                pkg_path = os.path.join(pkg_path, dirs[0])
-            except IndexError:
-                raise VersionNotFound(pkg_path)
-            else:
-                break
 
     logger.debug('detected packages path: %s', pkg_path)
     return pkg_path
