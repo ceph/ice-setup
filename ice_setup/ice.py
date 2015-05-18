@@ -1522,16 +1522,17 @@ def default(package_path, use_gpg):
 
     # step four, I can give you more
     # configure current host to serve ceph packages
-    #for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
     logger.info('')
     logger.info('\
         {markup} \
-        Step 4: ceph repository setup \
+        Step 4: ceph repositories setup \
         {markup}'.format(markup='===='))
     logger.info('')
-    # configure the repo, tell it we want to keep versions around
-    ceph_destination_name = configure_remote('ceph', package_path, versioned=True)
+    # configure both the MON and OSD repos
+    configure_remote('MON', package_path)
+    configure_remote('OSD', package_path)
 
+    # XXX: Remove this as calamari-minions is no longer used
     # step five, don't you know that the time has arrived
     # configure current host to serve minion packages
     logger.info('')
