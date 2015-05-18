@@ -1322,8 +1322,7 @@ def get_package_path(package_path):
 def configure_remote(
         name,
         package_path,
-        destination_name=None,
-        versioned=False):
+        destination_name=None):
     """
     Configure the current host so that Calamari can serve as a repo server for
     remote hosts. Some abstraction here allows us to configure any number of
@@ -1339,22 +1338,11 @@ def configure_remote(
 
     :param destination_name: defaults to ``name``, used to use a new
     destination name, e.g. 'ceph0.80' to help with versioning.
-
-    :param versioned: if the repository is versioned (e.g. 'ceph/0.80')
-    then traverse one level in and use the first directory # XXX magic
     """
     destination_name = destination_name or name
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
-    package_source = get_package_source(package_path, name, traverse=versioned)
-
-    if versioned:
-        # this means that we need to also grab the end part of the
-        # package_source, as that represents the version that should also
-        # get used for the destination to avoid overwriting repos
-        destination_name = os.path.join(
-            destination_name, os.path.basename(package_source)
-        )
+    package_source = get_package_source(package_path, name)
 
     # overwrite the repo with the new packages
     overwrite_dir(
