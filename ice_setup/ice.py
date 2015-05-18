@@ -1461,7 +1461,7 @@ def install_calamari(distro=None):
     """ Installs the Calamari web application """
     distro = distro or get_distro()
     logger.debug('installing Calamari...')
-    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/calamari-server').split()
+    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/Calamari').split()
     distro.pkg_manager.install(pkgs)
 
 
