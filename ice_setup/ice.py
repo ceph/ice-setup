@@ -499,7 +499,7 @@ proxy=_none_
 # template mappings
 
 yum_templates = {
-    'calamari-server': calamari_yum_template,
+    'Calamari': calamari_yum_template,
     'ceph-deploy': ceph_deploy_yum_template,
     'ceph': ceph_yum_template,
 }
