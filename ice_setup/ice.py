@@ -648,30 +648,22 @@ class Yum(object):
         if not which('createrepo'):
             cls.install('createrepo')
 
-        # infer the path to the ceph repo by looking at cephdeploy.conf because
-        # we never overwrite ceph, rather, we rely on versions so the path for
-        # ceph can have multiple versions already, like ``static/ceph/0.80``
-        # and ``static/ceph/0.86``
         repo_mapping = {
-            'ceph': {
+            'ceph-osd': {
                 'sources': {
-                    '6': ['rhel-6-server-rhceph-1.2-mon-rpms',
-                          'rhel-6-server-rhceph-1.2-osd-rpms'],
-                    '7': ['rhel-7-server-rhceph-1.2-mon-rpms',
-                          'rhel-7-server-rhceph-1.2-osd-rpms']
+                    '6': ['rhel-6-server-rhceph-1.3-osd-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.3-osd-rpms']
                 },
-                'destination': infer_ceph_repo()
+                'destination': '/opt/calamari/webapp/content/OSD'
             },
-            'calamari-minions': {
+            'ceph-mon': {
                 'sources': {
-                    '6': ['rhel-6-server-rhceph-1.2-calamari-rpms'],
-                    '7': ['rhel-7-server-rhceph-1.2-calamari-rpms']
+                    '6': ['rhel-6-server-rhceph-1.3-mon-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.3-mon-rpms']
                 },
-                'destination': '/opt/calamari/webapp/content/calamari-minions'
-            }
+                'destination': '/opt/calamari/webapp/content/MON'
+            },
         }
-
-
 
         for repo in repos:
             destination = repo_mapping[repo]['destination']
@@ -683,7 +675,7 @@ class Yum(object):
                         '--newest-only',
                         '--norepopath',
                         '-p',
-                        destination
+                        destination % repo_directories[repo]
                     ]
                 )
 
