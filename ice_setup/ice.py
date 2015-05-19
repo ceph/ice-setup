@@ -1215,7 +1215,7 @@ class Configure(object):
       all         Configure both local and remote repos
       local       Configure repos necessary to install calamari and ceph-deploy
                   on this local host
-      remote      Configure repos necessary to install ceph and calamari-minions
+      remote      Configure repos necessary to install ceph and calamari
                   on remote hosts
 
     Details:
@@ -1237,20 +1237,20 @@ class Configure(object):
 
         if parser.has('all'):
             package_path = parser.get('all')
-            configure_local('calamari-server', package_path)
-            configure_local('ceph-deploy', package_path)
-            configure_remote('ceph', package_path, versioned=True)
-            configure_remote('calamari-minions', package_path)
+            configure_local('Calamari', package_path)
+            configure_local('Installer', package_path)
+            configure_remote('ceph-osd', package_path)
+            configure_remote('ceph-mon', package_path)
 
         elif parser.has('local'):
             package_path = parser.get('local')
-            configure_local('calamari-server', package_path)
-            configure_local('ceph-deploy', package_path)
+            configure_local('Calamari', package_path)
+            configure_local('Installer', package_path)
 
         elif parser.has('remote'):
             package_path = parser.get('remote')
-            configure_remote('ceph', package_path, versioned=True)
-            configure_remote('calamari-minions', package_path)
+            configure_remote('ceph-osd', package_path)
+            configure_remote('ceph-mon', package_path)
 
         return True
 
