@@ -500,7 +500,7 @@ proxy=_none_
 
 yum_templates = {
     'Calamari': calamari_yum_template,
-    'ceph-deploy': ceph_deploy_yum_template,
+    'Installer': ceph_deploy_yum_template,
     'ceph': ceph_yum_template,
 }
 
