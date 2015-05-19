@@ -1135,38 +1135,6 @@ def which(executable):
         if os.path.exists(executable_path):
             return executable_path
 
-
-def infer_ceph_repo(_configs=None):
-    configs = _configs or get_ceph_deploy_conf_paths()
-    config = None
-    for conf in configs:
-        if os.path.exists(conf):
-            config = conf
-            break
-
-    if not config:
-        logger.error('tried looking for a valid cephdeploy.conf file but failed')
-        raise DirNotFound(configs[0])
-
-    parser = SafeConfigParser()
-    parser.read(config)
-
-    try:
-        http_path = parser.get('ceph', 'baseurl')
-    except (NoSectionError, NoOptionError):
-        msg = 'could not find a ``ceph`` repo section at %s' % config
-        raise ICEError(msg)
-
-    directories = http_path.split('/')
-    # if we had a trailing slash fallback the next item
-    # In [4]: 'http://fqdn/static/ceph/0.80/'.split('/')
-    # Out[4]: ['http:', '', 'fqdn', 'static', 'ceph', '0.80', '']
-    directory = directories[-1] or directories[-2]
-
-    return os.path.join('/opt/calamari/webapp/content/ceph', directory)
-
-
-
 # =============================================================================
 # Prompts
 # =============================================================================
