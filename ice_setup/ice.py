@@ -464,7 +464,9 @@ gpgcheck={gpg_check}
 proxy=_none_
 """
 
-ceph_apt_template = """deb {repo_url} {codename} main\n"""
+ceph_mon_apt_template = """deb {repo_url} {codename} main\n"""
+
+ceph_osd_apt_template = """deb {repo_url} {codename} main\n"""
 
 calamari_apt_template = """deb {repo_url} {codename} main\n"""
 
@@ -516,9 +518,10 @@ yum_templates = {
 }
 
 apt_templates = {
-    'calamari-server': calamari_apt_template,
-    'ceph-deploy': ceph_deploy_apt_template,
-    'ceph': ceph_apt_template,
+    'Calamari': calamari_apt_template,
+    'Installer': ceph_deploy_apt_template,
+    'ceph-osd': ceph_osd_apt_template,
+    'ceph-mon': ceph_mon_apt_template,
 }
 
 
