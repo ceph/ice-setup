@@ -476,23 +476,24 @@ master = {master}
 
 # Repositories
 
-[calamari-minion]
-name=Calamari
-baseurl={minion_url}
-gpgkey={minion_gpg_url}
-gpgcheck={gpg_check}
-enabled=1
-priority=1
-proxy=_none_
-
-[ceph]
+[ceph-mon]
 name=Ceph
-baseurl={ceph_url}
-gpgkey={ceph_gpg_url}
+baseurl={ceph_mon_url}
+gpgkey={ceph_mon_gpg_url}
 gpgcheck={gpg_check}
 default=true
 priority=1
 proxy=_none_
+
+[ceph-osd]
+name=Ceph
+baseurl={ceph_osd_url}
+gpgkey={ceph_osd_gpg_url}
+gpgcheck={gpg_check}
+default=true
+priority=1
+proxy=_none_
+
 """
 
 
@@ -1357,8 +1358,10 @@ def configure_remote(
     return destination_name
 
 
-def configure_ceph_deploy(master, minion_url, minion_gpg_url,
-                          ceph_url, ceph_gpg_url, use_gpg=True):
+def configure_ceph_deploy(master,
+                          ceph_mon_url, ceph_mon_gpg_url,
+                          ceph_osd_url, ceph_osd_gpg_url,
+                          use_gpg=True):
     """
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
@@ -1378,10 +1381,10 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
         with open(cephdeploy_conf, 'w') as rc_file:
             contents = ceph_deploy_rc.format(
                 master=master,
-                minion_url=minion_url,
-                minion_gpg_url=minion_gpg_url,
-                ceph_url=ceph_url,
-                ceph_gpg_url=ceph_gpg_url,
+                ceph_mon_url=ceph_mon_url,
+                ceph_mon_gpg_url=ceph_mon_gpg_url,
+                ceph_osd_url=ceph_osd_url,
+                ceph_osd_gpg_url=ceph_osd_gpg_url,
                 gpg_check=1 if use_gpg else 0,
             )
 
@@ -1516,27 +1519,35 @@ def default(package_path, use_gpg):
         {markup}'.format(markup='===='))
     logger.info('')
     # configure both the MON and OSD repos
-    configure_remote('MON', package_path)
-    configure_remote('OSD', package_path)
+    ceph_mon_destination_name = configure_remote('MON', package_path)
+    ceph_osd_destination_name = configure_remote('OSD', package_path)
 
     distro = get_distro()
     # create the proper URLs for the repos
-    ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
+    ceph_mon_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_mon_destination_name)
+    ceph_osd_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_osd_destination_name)
 
     if distro.name == "redhat":
-        ceph_gpg_url = get_rhel_gpg_path()
+        ceph_mon_gpg_url = ceph_osd_gpg_url = get_rhel_gpg_path()
     else:
-        ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
+        ceph_mon_gpg_url = '%s://%s/static/%s/release.asc' % (
             protocol,
             fqdn,
-            ceph_destination_name
+            ceph_mon_destination_name
+        )
+        ceph_osd_gpg_url = '%s://%s/static/%s/release.asc' % (
+            protocol,
+            fqdn,
+            ceph_osd_destination_name
         )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
         fqdn,
-        ceph_url,
-        ceph_gpg_url,
+        ceph_mon_url,
+        ceph_mon_gpg_url,
+        ceph_osd_url,
+        ceph_osd_gpg_url,
         use_gpg=use_gpg,
     )
 
