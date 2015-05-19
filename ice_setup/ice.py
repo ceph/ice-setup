@@ -1473,7 +1473,6 @@ def default(package_path, use_gpg):
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
         '4. Configure host as a Ceph repository for remote hosts',
-        '5. Configure host as a Calamari minion repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
@@ -1520,41 +1519,22 @@ def default(package_path, use_gpg):
     configure_remote('MON', package_path)
     configure_remote('OSD', package_path)
 
-    # XXX: Remove this as calamari-minions is no longer used
-    # step five, don't you know that the time has arrived
-    # configure current host to serve minion packages
-    logger.info('')
-    logger.info('\
-        {markup} \
-        Step 5: minion repository setup \
-        {markup}'.format(markup='===='))
-    logger.info('')
-    configure_remote('calamari-minions', package_path)
-
     distro = get_distro()
     # create the proper URLs for the repos
-    minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
     ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
 
     if distro.name == "redhat":
         ceph_gpg_url = get_rhel_gpg_path()
-        minion_gpg_url = ceph_gpg_url
     else:
         ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
             protocol,
             fqdn,
             ceph_destination_name
         )
-        minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
-            protocol,
-            fqdn
-        )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
         fqdn,
-        minion_url,
-        minion_gpg_url,
         ceph_url,
         ceph_gpg_url,
         use_gpg=use_gpg,
