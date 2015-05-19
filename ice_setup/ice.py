@@ -675,7 +675,7 @@ class Yum(object):
                         '--newest-only',
                         '--norepopath',
                         '-p',
-                        destination % repo_directories[repo]
+                        destination
                     ]
                 )
 
