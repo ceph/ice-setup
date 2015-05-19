@@ -444,9 +444,18 @@ gpgkey={gpg_url}
 gpgcheck={gpg_check}
 """
 
-ceph_yum_template = """
-[ceph]
-name=Ceph
+ceph_osd_yum_template = """
+[ceph-osd]
+name=Ceph-OSD
+baseurl={repo_url}
+default=true
+priority=1
+gpgcheck={gpg_check}
+proxy=_none_
+"""
+ceph_mon_yum_template = """
+[ceph-mon]
+name=Ceph-MON
 baseurl={repo_url}
 default=true
 priority=1
@@ -477,7 +486,7 @@ master = {master}
 # Repositories
 
 [ceph-mon]
-name=Ceph
+name=Ceph-MON
 baseurl={ceph_mon_url}
 gpgkey={ceph_mon_gpg_url}
 gpgcheck={gpg_check}
@@ -486,7 +495,7 @@ priority=1
 proxy=_none_
 
 [ceph-osd]
-name=Ceph
+name=Ceph-OSD
 baseurl={ceph_osd_url}
 gpgkey={ceph_osd_gpg_url}
 gpgcheck={gpg_check}
@@ -502,7 +511,8 @@ proxy=_none_
 yum_templates = {
     'Calamari': calamari_yum_template,
     'Installer': ceph_deploy_yum_template,
-    'ceph': ceph_yum_template,
+    'ceph-osd': ceph_osd_yum_template,
+    'ceph-mon': ceph_mon_yum_template,
 }
 
 apt_templates = {
@@ -1553,9 +1563,16 @@ def default(package_path, use_gpg):
 
     # Print the output of what would the repo file look for remotes
     distro.pkg_manager.print_repo_file(
-        'ceph',
-        repo_url=ceph_url,
-        gpg_url=ceph_gpg_url,
+        'ceph-mon',
+        repo_url=ceph_mon_url,
+        gpg_url=ceph_mon_gpg_url,
+        codename=distro.codename,
+        use_gpg=use_gpg,
+    )
+    distro.pkg_manager.print_repo_file(
+        'ceph-osd',
+        repo_url=ceph_osd_url,
+        gpg_url=ceph_osd_gpg_url,
         codename=distro.codename,
         use_gpg=use_gpg,
     )
