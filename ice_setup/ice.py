@@ -1591,12 +1591,12 @@ class UpdateRepo(object):
     Commands:
 
       all         Updates all repositories configured for this host
-                  (ceph and calamari-minions)
+                  (ceph-osd and ceph-mon)
 
     Optional Arguments:
 
-      ceph              Update the ceph repo
-      calamari-minions  Update the calamari-minions repo
+      ceph-mon              Update the ceph-mon repo
+      ceph-osd              Update the ceph-osd repo
 
     Examples:
 
@@ -1604,14 +1604,14 @@ class UpdateRepo(object):
 
       ice_setup update all
 
-    Update just the ceph repo:
+    Update just the ceph-osd repo:
 
-      ice_setup update ceph
+      ice_setup update ceph-osd
     """)
 
     def __init__(self, argv):
         self.argv = argv
-        self.optional_arguments = frozenset(['ceph', 'calamari-minions'])
+        self.optional_arguments = frozenset(['ceph-mon', 'ceph-osd'])
 
     def parse_args(self):
         options = ['all']
