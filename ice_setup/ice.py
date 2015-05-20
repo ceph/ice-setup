@@ -1538,13 +1538,19 @@ def default(package_path, use_gpg):
     logger.info('    calamari-ctl initialize')
     logger.info('')
 
-    logger.info('To install the repo files on remote nodes with ceph-deploy, run:')
-    logger.info('    ceph-deploy install --repo {HOSTS}')
+    logger.info('To install the ceph-osd repo files on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install --repo --release=ceph-osd {HOSTS}')
+    logger.info('')
+    logger.info('To install the ceph-mon repo files on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install --repo --release=ceph-mon {HOSTS}')
     logger.info('')
     logger.warning('If upgrading, `ceph-deploy install {HOSTS}` will also upgrade ceph on remote nodes')
     logger.info('')
-    logger.info('To install ceph on remote nodes with ceph-deploy, run:')
-    logger.info('    ceph-deploy install {HOSTS}')
+    logger.info('To install ceph OSD on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install --osd {HOSTS}')
+    logger.info('')
+    logger.info('To install ceph MON on remote nodes with ceph-deploy, run:')
+    logger.info('    ceph-deploy install --mon {HOSTS}')
     logger.info('')
 
 
