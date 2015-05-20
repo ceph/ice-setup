@@ -444,9 +444,18 @@ gpgkey={gpg_url}
 gpgcheck={gpg_check}
 """
 
-ceph_yum_template = """
-[ceph]
-name=Ceph
+ceph_osd_yum_template = """
+[ceph-osd]
+name=Ceph-OSD
+baseurl={repo_url}
+default=true
+priority=1
+gpgcheck={gpg_check}
+proxy=_none_
+"""
+ceph_mon_yum_template = """
+[ceph-mon]
+name=Ceph-MON
 baseurl={repo_url}
 default=true
 priority=1
@@ -455,7 +464,9 @@ gpgcheck={gpg_check}
 proxy=_none_
 """
 
-ceph_apt_template = """deb {repo_url} {codename} main\n"""
+ceph_mon_apt_template = """deb {repo_url} {codename} main\n"""
+
+ceph_osd_apt_template = """deb {repo_url} {codename} main\n"""
 
 calamari_apt_template = """deb {repo_url} {codename} main\n"""
 
@@ -476,38 +487,41 @@ master = {master}
 
 # Repositories
 
-[calamari-minion]
-name=Calamari
-baseurl={minion_url}
-gpgkey={minion_gpg_url}
-gpgcheck={gpg_check}
-enabled=1
-priority=1
-proxy=_none_
-
-[ceph]
-name=Ceph
-baseurl={ceph_url}
-gpgkey={ceph_gpg_url}
+[ceph-mon]
+name=Ceph-MON
+baseurl={ceph_mon_url}
+gpgkey={ceph_mon_gpg_url}
 gpgcheck={gpg_check}
 default=true
 priority=1
 proxy=_none_
+
+[ceph-osd]
+name=Ceph-OSD
+baseurl={ceph_osd_url}
+gpgkey={ceph_osd_gpg_url}
+gpgcheck={gpg_check}
+default=true
+priority=1
+proxy=_none_
+
 """
 
 
 # template mappings
 
 yum_templates = {
-    'calamari-server': calamari_yum_template,
-    'ceph-deploy': ceph_deploy_yum_template,
-    'ceph': ceph_yum_template,
+    'Calamari': calamari_yum_template,
+    'Installer': ceph_deploy_yum_template,
+    'ceph-osd': ceph_osd_yum_template,
+    'ceph-mon': ceph_mon_yum_template,
 }
 
 apt_templates = {
-    'calamari-server': calamari_apt_template,
-    'ceph-deploy': ceph_deploy_apt_template,
-    'ceph': ceph_apt_template,
+    'Calamari': calamari_apt_template,
+    'Installer': ceph_deploy_apt_template,
+    'ceph-osd': ceph_osd_apt_template,
+    'ceph-mon': ceph_mon_apt_template,
 }
 
 
@@ -634,30 +648,22 @@ class Yum(object):
         if not which('createrepo'):
             cls.install('createrepo')
 
-        # infer the path to the ceph repo by looking at cephdeploy.conf because
-        # we never overwrite ceph, rather, we rely on versions so the path for
-        # ceph can have multiple versions already, like ``static/ceph/0.80``
-        # and ``static/ceph/0.86``
         repo_mapping = {
-            'ceph': {
+            'ceph-osd': {
                 'sources': {
-                    '6': ['rhel-6-server-rhceph-1.2-mon-rpms',
-                          'rhel-6-server-rhceph-1.2-osd-rpms'],
-                    '7': ['rhel-7-server-rhceph-1.2-mon-rpms',
-                          'rhel-7-server-rhceph-1.2-osd-rpms']
+                    '6': ['rhel-6-server-rhceph-1.3-osd-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.3-osd-rpms']
                 },
-                'destination': infer_ceph_repo()
+                'destination': '/opt/calamari/webapp/content/OSD'
             },
-            'calamari-minions': {
+            'ceph-mon': {
                 'sources': {
-                    '6': ['rhel-6-server-rhceph-1.2-calamari-rpms'],
-                    '7': ['rhel-7-server-rhceph-1.2-calamari-rpms']
+                    '6': ['rhel-6-server-rhceph-1.3-mon-rpms'],
+                    '7': ['rhel-7-server-rhceph-1.3-mon-rpms']
                 },
-                'destination': '/opt/calamari/webapp/content/calamari-minions'
-            }
+                'destination': '/opt/calamari/webapp/content/MON'
+            },
         }
-
-
 
         for repo in repos:
             destination = repo_mapping[repo]['destination']
@@ -1058,7 +1064,7 @@ def overwrite_dir(source, destination='/opt/ICE/ceph-repo/'):
     logger.debug('copied contents from: %s to %s' % (source, destination))
 
 
-def get_package_source(package_path, package_name, traverse=False):
+def get_package_source(package_path, package_name):
     """
     Constructs the source location of the package files, verifying that the
     resulting path exists.
@@ -1067,24 +1073,11 @@ def get_package_source(package_path, package_name, traverse=False):
                          current working directory
     :param package_name: Name of directory containing package files (e.g. 'ceph',
                          'calamari-server')
-    :param traverse: traverse one level in and use the first directory. # XXX magic
-                     for use with versioned reposistories (e.g. 'ceph/0.80')
     """
     package_path = package_path or CWD
     pkg_path = os.path.join(package_path, package_name)
     if not os.path.isdir(pkg_path):
         raise DirNotFound(pkg_path)
-    if traverse:
-        for root, dirs, files in os.walk(pkg_path):
-            # be blatant here so we break if the dir is not there
-            # We're not actually searching - we are descending one dir and only
-            # expecting to find one dir (the version).
-            try:
-                pkg_path = os.path.join(pkg_path, dirs[0])
-            except IndexError:
-                raise VersionNotFound(pkg_path)
-            else:
-                break
 
     logger.debug('detected packages path: %s', pkg_path)
     return pkg_path
@@ -1133,38 +1126,6 @@ def which(executable):
         executable_path = os.path.join(location, executable)
         if os.path.exists(executable_path):
             return executable_path
-
-
-def infer_ceph_repo(_configs=None):
-    configs = _configs or get_ceph_deploy_conf_paths()
-    config = None
-    for conf in configs:
-        if os.path.exists(conf):
-            config = conf
-            break
-
-    if not config:
-        logger.error('tried looking for a valid cephdeploy.conf file but failed')
-        raise DirNotFound(configs[0])
-
-    parser = SafeConfigParser()
-    parser.read(config)
-
-    try:
-        http_path = parser.get('ceph', 'baseurl')
-    except (NoSectionError, NoOptionError):
-        msg = 'could not find a ``ceph`` repo section at %s' % config
-        raise ICEError(msg)
-
-    directories = http_path.split('/')
-    # if we had a trailing slash fallback the next item
-    # In [4]: 'http://fqdn/static/ceph/0.80/'.split('/')
-    # Out[4]: ['http:', '', 'fqdn', 'static', 'ceph', '0.80', '']
-    directory = directories[-1] or directories[-2]
-
-    return os.path.join('/opt/calamari/webapp/content/ceph', directory)
-
-
 
 # =============================================================================
 # Prompts
@@ -1254,7 +1215,7 @@ class Configure(object):
       all         Configure both local and remote repos
       local       Configure repos necessary to install calamari and ceph-deploy
                   on this local host
-      remote      Configure repos necessary to install ceph and calamari-minions
+      remote      Configure repos necessary to install ceph and calamari
                   on remote hosts
 
     Details:
@@ -1276,20 +1237,20 @@ class Configure(object):
 
         if parser.has('all'):
             package_path = parser.get('all')
-            configure_local('calamari-server', package_path)
-            configure_local('ceph-deploy', package_path)
-            configure_remote('ceph', package_path, versioned=True)
-            configure_remote('calamari-minions', package_path)
+            configure_local('Calamari', package_path)
+            configure_local('Installer', package_path)
+            configure_remote('ceph-osd', package_path)
+            configure_remote('ceph-mon', package_path)
 
         elif parser.has('local'):
             package_path = parser.get('local')
-            configure_local('calamari-server', package_path)
-            configure_local('ceph-deploy', package_path)
+            configure_local('Calamari', package_path)
+            configure_local('Installer', package_path)
 
         elif parser.has('remote'):
             package_path = parser.get('remote')
-            configure_remote('ceph', package_path, versioned=True)
-            configure_remote('calamari-minions', package_path)
+            configure_remote('ceph-osd', package_path)
+            configure_remote('ceph-mon', package_path)
 
         return True
 
@@ -1335,8 +1296,7 @@ def get_package_path(package_path):
 def configure_remote(
         name,
         package_path,
-        destination_name=None,
-        versioned=False):
+        destination_name=None):
     """
     Configure the current host so that Calamari can serve as a repo server for
     remote hosts. Some abstraction here allows us to configure any number of
@@ -1352,22 +1312,11 @@ def configure_remote(
 
     :param destination_name: defaults to ``name``, used to use a new
     destination name, e.g. 'ceph0.80' to help with versioning.
-
-    :param versioned: if the repository is versioned (e.g. 'ceph/0.80')
-    then traverse one level in and use the first directory # XXX magic
     """
     destination_name = destination_name or name
     repo_dest_prefix = '/opt/calamari/webapp/content'
 
-    package_source = get_package_source(package_path, name, traverse=versioned)
-
-    if versioned:
-        # this means that we need to also grab the end part of the
-        # package_source, as that represents the version that should also
-        # get used for the destination to avoid overwriting repos
-        destination_name = os.path.join(
-            destination_name, os.path.basename(package_source)
-        )
+    package_source = get_package_source(package_path, name)
 
     # overwrite the repo with the new packages
     overwrite_dir(
@@ -1382,8 +1331,10 @@ def configure_remote(
     return destination_name
 
 
-def configure_ceph_deploy(master, minion_url, minion_gpg_url,
-                          ceph_url, ceph_gpg_url, use_gpg=True):
+def configure_ceph_deploy(master,
+                          ceph_mon_url, ceph_mon_gpg_url,
+                          ceph_osd_url, ceph_osd_gpg_url,
+                          use_gpg=True):
     """
     Write the ceph-deploy conf to automagically tell ceph-deploy to use
     the right repositories and flags without making the user specify them
@@ -1403,10 +1354,10 @@ def configure_ceph_deploy(master, minion_url, minion_gpg_url,
         with open(cephdeploy_conf, 'w') as rc_file:
             contents = ceph_deploy_rc.format(
                 master=master,
-                minion_url=minion_url,
-                minion_gpg_url=minion_gpg_url,
-                ceph_url=ceph_url,
-                ceph_gpg_url=ceph_gpg_url,
+                ceph_mon_url=ceph_mon_url,
+                ceph_mon_gpg_url=ceph_mon_gpg_url,
+                ceph_osd_url=ceph_osd_url,
+                ceph_osd_gpg_url=ceph_osd_gpg_url,
                 gpg_check=1 if use_gpg else 0,
             )
 
@@ -1474,7 +1425,7 @@ def install_calamari(distro=None):
     """ Installs the Calamari web application """
     distro = distro or get_distro()
     logger.debug('installing Calamari...')
-    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/calamari-server').split()
+    pkgs = distro.pkg_manager.enumerate_repo('/opt/ICE/Calamari').split()
     distro.pkg_manager.install(pkgs)
 
 
@@ -1498,7 +1449,6 @@ def default(package_path, use_gpg):
         '2. Install Calamari web application on the ICE Node (current host)',
         '3. Install ceph-deploy on the ICE Node (current host)',
         '4. Configure host as a Ceph repository for remote hosts',
-        '5. Configure host as a Calamari minion repository for remote hosts',
     ]
 
     logger.info('this script will setup Calamari, package repo, and ceph-deploy')
@@ -1513,8 +1463,8 @@ def default(package_path, use_gpg):
     logger.info('')
     logger.info('{markup} Step 1: Calamari & ceph-deploy repo setup {markup}'.format(markup='===='))
     logger.info('')
-    configure_local('calamari-server', package_path, use_gpg=use_gpg)
-    configure_local('ceph-deploy', package_path, use_gpg=use_gpg)
+    configure_local('Calamari', package_path, use_gpg=use_gpg)
+    configure_local('Installer', package_path, use_gpg=use_gpg)
 
     # step two, there's so much we can do
     # install calamari
@@ -1535,60 +1485,57 @@ def default(package_path, use_gpg):
 
     # step four, I can give you more
     # configure current host to serve ceph packages
-    #for step, repo in enumerate(['ceph-repo', 'minion-repo'], 4):
     logger.info('')
     logger.info('\
         {markup} \
-        Step 4: ceph repository setup \
+        Step 4: ceph repositories setup \
         {markup}'.format(markup='===='))
     logger.info('')
-    # configure the repo, tell it we want to keep versions around
-    ceph_destination_name = configure_remote('ceph', package_path, versioned=True)
-
-    # step five, don't you know that the time has arrived
-    # configure current host to serve minion packages
-    logger.info('')
-    logger.info('\
-        {markup} \
-        Step 5: minion repository setup \
-        {markup}'.format(markup='===='))
-    logger.info('')
-    configure_remote('calamari-minions', package_path)
+    # configure both the MON and OSD repos
+    ceph_mon_destination_name = configure_remote('MON', package_path)
+    ceph_osd_destination_name = configure_remote('OSD', package_path)
 
     distro = get_distro()
     # create the proper URLs for the repos
-    minion_url = '%s://%s/static/calamari-minions' % (protocol, fqdn)
-    ceph_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_destination_name)
+    ceph_mon_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_mon_destination_name)
+    ceph_osd_url = '%s://%s/static/%s' % (protocol, fqdn, ceph_osd_destination_name)
 
     if distro.name == "redhat":
-        ceph_gpg_url = get_rhel_gpg_path()
-        minion_gpg_url = ceph_gpg_url
+        ceph_mon_gpg_url = ceph_osd_gpg_url = get_rhel_gpg_path()
     else:
-        ceph_gpg_url = '%s://%s/static/%s/release.asc' % (
+        ceph_mon_gpg_url = '%s://%s/static/%s/release.asc' % (
             protocol,
             fqdn,
-            ceph_destination_name
+            ceph_mon_destination_name
         )
-        minion_gpg_url = '%s://%s/static/calamari-minions/release.asc' % (
+        ceph_osd_gpg_url = '%s://%s/static/%s/release.asc' % (
             protocol,
-            fqdn
+            fqdn,
+            ceph_osd_destination_name
         )
 
     # write the ceph-deploy configuration file with the new repo info
     configure_ceph_deploy(
         fqdn,
-        minion_url,
-        minion_gpg_url,
-        ceph_url,
-        ceph_gpg_url,
+        ceph_mon_url,
+        ceph_mon_gpg_url,
+        ceph_osd_url,
+        ceph_osd_gpg_url,
         use_gpg=use_gpg,
     )
 
     # Print the output of what would the repo file look for remotes
     distro.pkg_manager.print_repo_file(
-        'ceph',
-        repo_url=ceph_url,
-        gpg_url=ceph_gpg_url,
+        'ceph-mon',
+        repo_url=ceph_mon_url,
+        gpg_url=ceph_mon_gpg_url,
+        codename=distro.codename,
+        use_gpg=use_gpg,
+    )
+    distro.pkg_manager.print_repo_file(
+        'ceph-osd',
+        repo_url=ceph_osd_url,
+        gpg_url=ceph_osd_gpg_url,
         codename=distro.codename,
         use_gpg=use_gpg,
     )
@@ -1636,12 +1583,12 @@ class UpdateRepo(object):
     Commands:
 
       all         Updates all repositories configured for this host
-                  (ceph and calamari-minions)
+                  (ceph-osd and ceph-mon)
 
     Optional Arguments:
 
-      ceph              Update the ceph repo
-      calamari-minions  Update the calamari-minions repo
+      ceph-mon              Update the ceph-mon repo
+      ceph-osd              Update the ceph-osd repo
 
     Examples:
 
@@ -1649,14 +1596,14 @@ class UpdateRepo(object):
 
       ice_setup update all
 
-    Update just the ceph repo:
+    Update just the ceph-osd repo:
 
-      ice_setup update ceph
+      ice_setup update ceph-osd
     """)
 
     def __init__(self, argv):
         self.argv = argv
-        self.optional_arguments = frozenset(['ceph', 'calamari-minions'])
+        self.optional_arguments = frozenset(['ceph-mon', 'ceph-osd'])
 
     def parse_args(self):
         options = ['all']
