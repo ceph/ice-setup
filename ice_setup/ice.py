@@ -428,7 +428,6 @@ name=ceph_deploy packages for $basearch
 baseurl={repo_url}
 enabled=1
 type=rpm-md
-priority=1
 gpgkey={gpg_url}
 gpgcheck={gpg_check}
 """
@@ -439,7 +438,6 @@ name=calamari packages for $basearch
 baseurl={repo_url}
 enabled=1
 type=rpm-md
-priority=1
 gpgkey={gpg_url}
 gpgcheck={gpg_check}
 """
@@ -448,7 +446,6 @@ ceph_osd_yum_template = """
 [ceph-osd]
 name=Ceph-OSD
 baseurl={repo_url}
-priority=1
 gpgcheck={gpg_check}
 proxy=_none_
 """
@@ -456,7 +453,6 @@ ceph_mon_yum_template = """
 [ceph-mon]
 name=Ceph-MON
 baseurl={repo_url}
-priority=1
 gpgkey={gpg_url}
 gpgcheck={gpg_check}
 proxy=_none_
@@ -490,7 +486,6 @@ name=Ceph-MON
 baseurl={ceph_mon_url}
 gpgkey={ceph_mon_gpg_url}
 gpgcheck={gpg_check}
-priority=1
 proxy=_none_
 
 [ceph-osd]
@@ -498,7 +493,6 @@ name=Ceph-OSD
 baseurl={ceph_osd_url}
 gpgkey={ceph_osd_gpg_url}
 gpgcheck={gpg_check}
-priority=1
 proxy=_none_
 
 """
