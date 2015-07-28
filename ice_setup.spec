@@ -7,7 +7,7 @@
 %endif
 
 Name:           ice_setup
-Version:        0.4.1
+Version:        0.4.2
 Release:        1%{?dist}
 Summary:        Red Hat Ceph Storage setup tool
 Group:          System Environment/Base

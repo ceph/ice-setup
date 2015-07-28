@@ -36,7 +36,7 @@ from ConfigParser import SafeConfigParser, NoSectionError, NoOptionError
 from functools import wraps
 from textwrap import dedent
 
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 
 help_header = """
 

@@ -1,3 +1,9 @@
+ice-setup (0.4.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Travis Rhoden <trhoden@redhat.com>  Tue, 28 Jul 2015 11:35:00 -0700
+
 ice-setup (0.3.0-2) unstable; urgency=low
 
   * stamp with packaging info, modify to native package
