@@ -442,6 +442,16 @@ gpgkey={gpg_url}
 gpgcheck={gpg_check}
 """
 
+tools_yum_template = """
+[tools]
+name=ceph-tools packages for $basearch
+baseurl={repo_url}
+enabled=1
+type=rpm-md
+gpgkey={gpg_url}
+gpgcheck={gpg_check}
+"""
+
 ceph_osd_yum_template = """
 [ceph-osd]
 name=Ceph-OSD
@@ -466,6 +476,7 @@ calamari_apt_template = """deb {repo_url} {codename} main\n"""
 
 ceph_deploy_apt_template = """deb {repo_url} {codename} main\n"""
 
+tools_apt_template = """deb {repo_url} {codename} main\n"""
 
 ceph_deploy_rc = """
 # This file was automatically generated after ice_setup was run. It provides
@@ -505,6 +516,7 @@ yum_templates = {
     'Installer': ceph_deploy_yum_template,
     'ceph-osd': ceph_osd_yum_template,
     'ceph-mon': ceph_mon_yum_template,
+    'Tools': tools_yum_template,
 }
 
 apt_templates = {
@@ -512,6 +524,7 @@ apt_templates = {
     'Installer': ceph_deploy_apt_template,
     'ceph-osd': ceph_osd_apt_template,
     'ceph-mon': ceph_mon_apt_template,
+    'Tools': tools_apt_template,
 }
 
 
@@ -1229,6 +1242,7 @@ class Configure(object):
             package_path = parser.get('all')
             configure_local('Calamari', package_path)
             configure_local('Installer', package_path)
+            configure_local('Tools', package_path)
             configure_remote('ceph-osd', package_path)
             configure_remote('ceph-mon', package_path)
 
@@ -1236,6 +1250,7 @@ class Configure(object):
             package_path = parser.get('local')
             configure_local('Calamari', package_path)
             configure_local('Installer', package_path)
+            configure_local('Tools', package_path)
 
         elif parser.has('remote'):
             package_path = parser.get('remote')
@@ -1455,6 +1470,7 @@ def default(package_path, use_gpg):
     logger.info('')
     configure_local('Calamari', package_path, use_gpg=use_gpg)
     configure_local('Installer', package_path, use_gpg=use_gpg)
+    configure_local('Tools', package_path, use_gpg=use_gpg)
 
     # step two, there's so much we can do
     # install calamari
