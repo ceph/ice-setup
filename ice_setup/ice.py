@@ -785,6 +785,15 @@ class Debian(object):
     pkg_manager = Apt()
 
 
+def pin_local_repos(path='/etc/apt/preferences.d/rhcs.pref'):
+    template = ("Explanation: Prefer Red Hat packages\n"
+                "Package: *\n"
+                "Pin: release o=/Red Hat/\n"
+                "Pin-Priority: 999\n")
+    with open(path, 'wb') as fout:
+        fout.write(template)
+
+
 # Normalize casing for easier mapping
 centos = CentOS
 debian = Debian
@@ -1245,12 +1254,14 @@ class Configure(object):
             configure_local('Tools', package_path)
             configure_remote('ceph-osd', package_path)
             configure_remote('ceph-mon', package_path)
+            pin_local_repos()
 
         elif parser.has('local'):
             package_path = parser.get('local')
             configure_local('Calamari', package_path)
             configure_local('Installer', package_path)
             configure_local('Tools', package_path)
+            pin_local_repos()
 
         elif parser.has('remote'):
             package_path = parser.get('remote')
@@ -1471,6 +1482,7 @@ def default(package_path, use_gpg):
     configure_local('Calamari', package_path, use_gpg=use_gpg)
     configure_local('Installer', package_path, use_gpg=use_gpg)
     configure_local('Tools', package_path, use_gpg=use_gpg)
+    pin_local_repos()
 
     # step two, there's so much we can do
     # install calamari
