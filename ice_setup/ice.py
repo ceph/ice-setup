@@ -1555,10 +1555,10 @@ def default(package_path, use_gpg):
     logger.info('')
 
     logger.info('To install the ceph-osd repo files on remote nodes with ceph-deploy, run:')
-    logger.info('    ceph-deploy install --repo --release=ceph-osd {HOSTS}')
+    logger.info('    ceph-deploy repo ceph-osd {HOSTS}')
     logger.info('')
     logger.info('To install the ceph-mon repo files on remote nodes with ceph-deploy, run:')
-    logger.info('    ceph-deploy install --repo --release=ceph-mon {HOSTS}')
+    logger.info('    ceph-deploy repo ceph-mon {HOSTS}')
     logger.info('')
     logger.warning('If upgrading, `ceph-deploy install {HOSTS}` will also upgrade ceph on remote nodes')
     logger.info('')
