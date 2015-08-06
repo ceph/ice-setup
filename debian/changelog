@@ -1,3 +1,9 @@
+ice-setup (0.4.3-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Travis Rhoden <trhoden@redhat.com>  Thu, 06 Aug 2015 15:18:00 -0700
+
 ice-setup (0.4.2-1) unstable; urgency=low
 
   * New upstream release
