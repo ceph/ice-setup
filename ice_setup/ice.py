@@ -1561,9 +1561,9 @@ def default(package_path, use_gpg):
     logger.info('Setup has completed.')
     logger.info('If installing Calamari for the first time:')
     logger.info('')
-    logger.info('  Initialize Calamari (as root) by running:')
+    logger.info('  Initialize Calamari by running:')
     logger.info('')
-    logger.info('    calamari-ctl initialize')
+    logger.info('    sudo calamari-ctl initialize')
     logger.info('')
 
     logger.info('To install the ceph-osd repo files on remote nodes with ceph-deploy, run:')
