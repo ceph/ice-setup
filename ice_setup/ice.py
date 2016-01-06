@@ -786,6 +786,13 @@ class Debian(object):
 
 
 def pin_local_repos(path='/etc/apt/preferences.d/rhcs.pref'):
+    """ Write apt preferences file """
+
+    # Skip this on non-Apt-based systems.
+    distro = get_distro()
+    if distro.pkg_manager.__class__.__name__ != 'Apt':
+        return
+
     template = ("Explanation: Prefer Red Hat packages\n"
                 "Package: *\n"
                 "Pin: release o=/Red Hat/\n"
