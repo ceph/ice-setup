@@ -785,11 +785,11 @@ class Debian(object):
     pkg_manager = Apt()
 
 
-def pin_local_repos(path='/etc/apt/preferences.d/rhcs.pref'):
+def pin_local_repos(path='/etc/apt/preferences.d/rhcs.pref', distro=None):
     """ Write apt preferences file """
 
     # Skip this on non-Apt-based systems.
-    distro = get_distro()
+    distro = distro or get_distro()
     if distro.pkg_manager.__class__.__name__ != 'Apt':
         return
 
