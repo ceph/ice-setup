@@ -1,3 +1,9 @@
+ice-setup (0.4.4-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Ken Dreyer <kdreyer@redhat.com>  Thu, 07 Jul 2016 11:34:00 -0700
+
 ice-setup (0.4.3-1) unstable; urgency=low
 
   * New upstream release
