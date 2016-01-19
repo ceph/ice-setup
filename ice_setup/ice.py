@@ -37,7 +37,7 @@ from errno import EROFS
 from functools import wraps
 from textwrap import dedent
 
-__version__ = '0.4.4'
+__version__ = '0.4.5'
 
 help_header = """
 
