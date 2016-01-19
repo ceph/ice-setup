@@ -32,6 +32,7 @@ import tempfile
 import urllib2
 import urlparse
 from ConfigParser import SafeConfigParser, NoSectionError, NoOptionError
+from errno import EROFS
 
 from functools import wraps
 from textwrap import dedent
@@ -1353,7 +1354,12 @@ def configure_remote(
 
     return destination_name
 
+def handle_ceph_deploy_ioerror(exc):
+    if exc.errno == EROFS:
+        print 'Error: Please ensure the current working directory is writable.'
+    raise SystemExit(exc)
 
+@catches(IOError, handler=handle_ceph_deploy_ioerror)
 def configure_ceph_deploy(master,
                           ceph_mon_url, ceph_mon_gpg_url,
                           ceph_osd_url, ceph_osd_gpg_url,
