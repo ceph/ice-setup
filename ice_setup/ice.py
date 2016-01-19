@@ -1661,6 +1661,8 @@ class UpdateRepo(object):
                 else:
                     error_msg = "Unrecognized repo name(s) given: %s" % (", ".join(frozenset(parser.arguments).difference(self.optional_arguments)))
                     raise InvalidRepoName(error_msg)
+            else:
+                parser.print_help()
 
         return True
 
